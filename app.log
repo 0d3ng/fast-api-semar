@@ -1,0 +1,8 @@
+2024-11-27 22:02:37,749 - app.utils.logger - INFO - Logger is set up and ready to go! (logger.py:34)
+2024-11-27 22:02:37,758 - app.utils.db - INFO - Connected to MongoDB (db.py:19)
+2024-11-27 22:03:15,933 - app.utils.logger - INFO - Logger is set up and ready to go! (logger.py:34)
+2024-11-27 22:03:15,938 - app.utils.db - INFO - Connected to MongoDB (db.py:20)
+2024-11-27 23:11:10,478 - app.utils.logger - INFO - Logger is set up and ready to go! (logger.py:34)
+2024-11-27 23:11:10,488 - app.utils.db - INFO - Connected to MongoDB (db.py:20)
+2024-11-27 23:14:56,103 - app.utils.logger - INFO - Logger is set up and ready to go! (logger.py:34)
+2024-11-27 23:14:56,109 - app.utils.db - INFO - Connected to MongoDB (db.py:20)

@@ -1,6 +1,10 @@
-from pydantic import BaseModel, Field
 from typing import Optional
+
 from bson import ObjectId
+from pydantic import BaseModel, Field
+
+from app.utils.custom_fields import PyObjectId
+
 
 class Role(BaseModel):
     id: Optional[ObjectId] = Field(alias='_id')

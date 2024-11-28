@@ -1,6 +1,7 @@
-from bson import ObjectId
-from pydantic import BaseModel
 from typing import Optional, List
+
+from bson import ObjectId
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class UserCreate(BaseModel):
@@ -8,13 +9,10 @@ class UserCreate(BaseModel):
     email: str
     password: str
     name: str
-    roles: Optional[List[ObjectId]]=[]
+    roles: Optional[List[ObjectId]] = []
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str  # Ensures ObjectId is serialized correctly
-        }
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -24,18 +22,18 @@ class UserUpdate(BaseModel):
     roles: Optional[List[ObjectId]] = None
     active: Optional[str] = None
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str  # Ensures ObjectId is serialized correctly
-        }
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
 
 class UserResponse(BaseModel):
-    id: str
+    id: ObjectId = Field(
+        alias="_id",
+        description="Unique identifier in mongo db"
+    )
     username: str
     email: str
     name: str
-    roles: Optional[List[ObjectId]]
+    roles: Optional[List[str]] = []
     active: bool
 
     inserted_at: Optional[str] = None
@@ -45,15 +43,13 @@ class UserResponse(BaseModel):
     deleted_at: Optional[str] = None
     deleted_by: Optional[str] = None
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str  # Ensures ObjectId is serialized correctly
-        }
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
 
 class UserLogin(BaseModel):
     email: str
     password: str
+
 
 class Token(BaseModel):
     access_token: str

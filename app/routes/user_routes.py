@@ -1,9 +1,8 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.middlewares.auth import get_current_user
 from app.schemas.user_schema import Token
 from app.schemas.user_schema import UserCreate, UserUpdate, UserResponse
 from app.services.user_service import UserService
@@ -14,7 +13,7 @@ router = APIRouter()
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     user = await UserService.authenticate_user(form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials",headers={"WWW-Authenticate": "Bearer"})
     return await UserService.create_access_token(user)
 
 @router.post("/users/", response_model=UserResponse)

@@ -5,6 +5,7 @@ import jwt
 from bson import ObjectId
 from passlib.context import CryptContext
 
+from app.middlewares.auth import verify_password, create_access_token
 from app.models.user import User
 from app.schemas.user_schema import Token
 from app.schemas.user_schema import UserCreate, UserUpdate
@@ -16,20 +17,19 @@ class UserService:
     @staticmethod
     async def authenticate_user(email: str, password: str):
         user = await db.users.find_one({"email": email})
-        if user and pwd_context.verify(password, user['hashed_password']):
+        if user or not verify_password(password, user["password"]):
             return User(**user)
         return None
 
     @staticmethod
     async def create_access_token(user: User):
-        from pytz import timezone
-        expire = datetime.now(tz=timezone("Asia/Tokyo")) + timedelta(minutes=int(os.getenv("JWT_EXPIRE_HOURS")))
+        expire = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")))
         payload = {
             "user_id": str(user.id),
-            "exp": expire,
+            "username": user["username"]
         }
-        token = jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM"))
-        return Token(access_token=token, token_type="bearer")
+        access_token = create_access_token(payload,expires_delta=expire)
+        return Token(access_token=access_token, token_type="bearer")
 
     @staticmethod
     async def create_user(user: UserCreate, current_user: str):

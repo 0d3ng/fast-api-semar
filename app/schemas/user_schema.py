@@ -10,6 +10,12 @@ class UserCreate(BaseModel):
     name: str
     roles: Optional[List[ObjectId]]=[]
 
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str  # Ensures ObjectId is serialized correctly
+        }
+
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
@@ -17,6 +23,12 @@ class UserUpdate(BaseModel):
     name: Optional[str] = None
     roles: Optional[List[ObjectId]] = None
     active: Optional[str] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str  # Ensures ObjectId is serialized correctly
+        }
 
 class UserResponse(BaseModel):
     id: str
@@ -32,6 +44,12 @@ class UserResponse(BaseModel):
     updated_by: Optional[str] = None
     deleted_at: Optional[str] = None
     deleted_by: Optional[str] = None
+
+    class Config:
+        arbitrary_types_allowed = True
+        json_encoders = {
+            ObjectId: str  # Ensures ObjectId is serialized correctly
+        }
 
 class UserLogin(BaseModel):
     email: str

@@ -22,7 +22,8 @@ class UserService:
 
     @staticmethod
     async def create_access_token(user: User):
-        expire = datetime.utcnow() + timedelta(minutes=int(os.getenv("JWT_EXPIRE_MINUTES")))
+        from pytz import timezone
+        expire = datetime.now(tz=timezone("Asia/Tokyo")) + timedelta(minutes=int(os.getenv("JWT_EXPIRE_HOURS")))
         payload = {
             "user_id": str(user.id),
             "exp": expire,

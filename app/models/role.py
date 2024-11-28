@@ -1,16 +1,11 @@
-from typing import Optional
-
-from bson import ObjectId
 from pydantic import BaseModel, Field
+from typing import Optional
+from bson import ObjectId
 
-
-class User(BaseModel):
+class Role(BaseModel):
     id: Optional[ObjectId] = Field(alias='_id')
-    username: str
-    email: str
-    hashed_password: str  # Rename to align with the hashed password used in the script
     name: str
-    active: bool
+    description: Optional[str] = None
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None
@@ -20,6 +15,4 @@ class User(BaseModel):
 
     class Config:
         arbitrary_types_allowed = True
-        json_encoders = {
-            ObjectId: str  # Ensures ObjectId is serialized correctly
-        }
+        json_encoders = {ObjectId: str}

@@ -1,20 +1,21 @@
+from bson import ObjectId
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
 
 class UserCreate(BaseModel):
     username: str
     email: str
     password: str
     name: str
-    role: str
-    active: bool
+    roles: Optional[List[ObjectId]]=[]
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
     name: Optional[str] = None
-    role: Optional[str] = None
+    roles: Optional[List[ObjectId]] = None
     active: Optional[str] = None
 
 class UserResponse(BaseModel):
@@ -22,7 +23,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     name: str
-    role: str
+    roles: Optional[List[ObjectId]]
     active: bool
 
     inserted_at: Optional[str] = None

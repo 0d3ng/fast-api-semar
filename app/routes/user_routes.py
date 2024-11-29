@@ -38,9 +38,15 @@ async def read_user(user_id: str, token: str = Depends(oauth2_scheme)):
 
 @router.get("/users/", response_model=List[UserResponse])
 async def read_users(token: str = Depends(oauth2_scheme)):
-    logger.info("get users")
-    token_data = verify_token(token=token, credentials_exception=credentials_exception)
-    return await UserService.get_all_users()
+    # logger.info("get users")
+    # token_data = verify_token(token=token, credentials_exception=credentials_exception)
+    # return await UserService.get_all_users()
+    try:
+        logger.info("get users")
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await UserService.get_all_users()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.put("/users/{user_id}", response_model=UserResponse)
 async def update_user(user_id: str, user: UserUpdate,token: str = Depends(oauth2_scheme)):

@@ -3,13 +3,15 @@ from typing import Optional, List
 from bson import ObjectId
 from pydantic import BaseModel, Field, ConfigDict
 
+from app.utils.custom_fields import PydanticObjectId
+
 
 class UserCreate(BaseModel):
     username: str
     email: str
     password: str
     name: str
-    roles: Optional[List[ObjectId]] = []
+    roles: Optional[List[PydanticObjectId]] = []
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -19,17 +21,14 @@ class UserUpdate(BaseModel):
     email: Optional[str] = None
     password: Optional[str] = None
     name: Optional[str] = None
-    roles: Optional[List[ObjectId]] = None
+    roles: Optional[List[PydanticObjectId]] = None
     active: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class UserResponse(BaseModel):
-    id: ObjectId = Field(
-        alias="_id",
-        description="Unique identifier in mongo db"
-    )
+    id: PydanticObjectId = Field(alias='_id')
     username: str
     email: str
     name: str

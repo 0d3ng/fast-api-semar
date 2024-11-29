@@ -1,13 +1,12 @@
 from typing import Optional
 
-from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
-from app.utils.custom_fields import PyObjectId
+from app.utils.custom_fields import PydanticObjectId
 
 
 class Role(BaseModel):
-    id: Optional[ObjectId] = Field(alias='_id')
+    id: Optional[PydanticObjectId] = Field(alias='_id')
     name: str
     description: Optional[str] = None
     inserted_at: Optional[str] = None
@@ -17,6 +16,4 @@ class Role(BaseModel):
     deleted_at: Optional[str] = None
     deleted_by: Optional[str] = None
 
-    class Config:
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+    model_config = ConfigDict(arbitrary_types_allowed=True)

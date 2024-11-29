@@ -60,7 +60,7 @@ class UserService:
     async def get_user(user_id: str):
         user = await db.users.find_one({"_id": ObjectId(user_id)})
         if user:
-            return User(**user)
+            return UserResponse(**user)
         return None
 
     @staticmethod

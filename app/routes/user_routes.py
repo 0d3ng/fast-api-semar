@@ -38,9 +38,6 @@ async def read_user(user_id: str, token: str = Depends(oauth2_scheme)):
 
 @router.get("/users/", response_model=List[UserResponse])
 async def read_users(token: str = Depends(oauth2_scheme)):
-    # logger.info("get users")
-    # token_data = verify_token(token=token, credentials_exception=credentials_exception)
-    # return await UserService.get_all_users()
     try:
         logger.info("get users")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)

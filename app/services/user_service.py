@@ -1,7 +1,6 @@
 import os
 import traceback
 from datetime import datetime, timedelta
-from traceback import print_stack
 
 from bson import ObjectId
 from fastapi import HTTPException
@@ -23,11 +22,16 @@ datetime_jpn = datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:
 class UserService:
     @staticmethod
     async def authenticate_user(username: str, password: str):
-        user = await db.users.find_one({"username": username})
-        logger.info(user)
-        if user or not verify_password(password, user["password"]):
-            return UserResponse(**user)
-        return None
+        try:
+            user = await db.users.find_one({"username": username})
+            logger.info(user)
+            if user or not verify_password(password, user["password"]):
+                return UserResponse(**user)
+            return None
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
     async def create_access_token(user: User):
@@ -45,23 +49,32 @@ class UserService:
 
     @staticmethod
     async def create_user(user: UserCreate, current_user: str):
-        hashed_password = pwd_context.hash(user.password)
-        new_user = User(
-            username=user.username,
-            email=user.email,
-            hashed_password=hashed_password,
-            inserted_at=datetime_jpn,
-            updated_by=current_user
-        )
-        await db.users.insert_one(new_user.model_dump(by_alias=True))
-        return new_user
+        try:
+            hashed_password = pwd_context.hash(user.password)
+            new_user = User(
+                username=user.username,
+                email=user.email,
+                hashed_password=hashed_password,
+                inserted_at=datetime_jpn,
+                updated_by=current_user
+            )
+            await db.users.insert_one(new_user.model_dump(by_alias=True))
+            return new_user
+        except Exception as e:
+            logger.error(f"failed to create access token: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
     async def get_user(user_id: str):
-        user = await db.users.find_one({"_id": ObjectId(user_id)})
-        if user:
-            return UserResponse(**user)
-        return None
+        try:
+            user = await db.users.find_one({"_id": ObjectId(user_id)})
+            if user:
+                return UserResponse(**user)
+            return None
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
     async def get_all_users():
@@ -91,23 +104,33 @@ class UserService:
 
     @staticmethod
     async def update_user(user_id: str, user_update: UserUpdate, current_user: str):
-        update_data = {k: v for k, v in user_update.model_dump(exclude_unset=True).items() if v is not None}
-        if "password" in update_data:
-            update_data["hashed_password"] = pwd_context.hash(update_data.pop("password"))
-        update_data["updated_at"] = datetime_jpn
-        update_data["updated_by"] = current_user
-        result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
-        if result.matched_count == 1:
-            return await UserService.get_user(user_id)
-        return None
+        try:
+            update_data = {k: v for k, v in user_update.model_dump(exclude_unset=True).items() if v is not None}
+            if "password" in update_data:
+                update_data["hashed_password"] = pwd_context.hash(update_data.pop("password"))
+            update_data["updated_at"] = datetime_jpn
+            update_data["updated_by"] = current_user
+            result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+            if result.matched_count == 1:
+                return await UserService.get_user(user_id)
+            return None
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
     async def delete_user(user_id: str, current_user: str):
-        update_data = {
-            "deleted_at": datetime_jpn,
-            "deleted_by": current_user
-        }
-        result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
-        if result.matched_count == 1:
-            return True
-        return False
+        try:
+            update_data = {
+                "deleted_at": datetime_jpn,
+                "deleted_by": current_user
+            }
+            result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+            if result.matched_count == 1:
+                return True
+            return False
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))

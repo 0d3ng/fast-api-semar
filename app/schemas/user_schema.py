@@ -1,6 +1,5 @@
 from typing import Optional, List
 
-from bson import ObjectId
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.utils.custom_fields import PydanticObjectId

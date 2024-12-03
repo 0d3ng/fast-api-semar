@@ -51,17 +51,42 @@ class UserService:
     async def create_user(user: UserCreate, current_user: str):
         try:
             hashed_password = pwd_context.hash(user.password)
-            new_user = User(
+            logger.info(user)
+            new_user: User = User(
                 username=user.username,
                 email=user.email,
-                hashed_password=hashed_password,
+                password=hashed_password,
+                name=user.name,
                 inserted_at=datetime_jpn,
-                updated_by=current_user
+                inserted_by=current_user
             )
-            await db.users.insert_one(new_user.model_dump(by_alias=True))
-            return new_user
+            logger.info(new_user)
+            new_user_inserted = await db.users.insert_one(new_user.model_dump(by_alias=True))
+            new_user_id = new_user_inserted.inserted_id
+            user_roles = [{"user_id": new_user_id, "role_id": ObjectId(role_id)} for role_id in user.roles]
+            logger.info(user_roles)
+            if user_roles:
+                await db.user_roles.insert_many(user_roles)
+
+            r_names = []
+            for r_id in user_roles:
+                logger.info(f"{r_id} {type(r_id)}")
+                role_name = await db.roles.find_one({"_id": r_id["role_id"]})
+                logger.info(role_name)
+                r_names.append(role_name["name"])
+            logger.info(r_names)
+            return UserResponse(_id=new_user_id,
+                                username=user.username,
+                                email=user.email,
+                                name=user.name,
+                                roles=r_names,
+                                active=True,
+                                inserted_at=datetime_jpn,
+                                inserted_by=current_user)
         except Exception as e:
-            logger.error(f"failed to create access token: {e}")
+            logger.error(f"Failed to create user: {e}")
+            tb_str = ''.join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
@@ -69,8 +94,20 @@ class UserService:
         try:
             user = await db.users.find_one({"_id": ObjectId(user_id)})
             if user:
-                return UserResponse(**user)
-            return None
+                role_ids = db.user_roles.find({"user_id": user["_id"]})
+                r_ids = []
+                async for role_id in role_ids:
+                    r_ids.append(role_id["role_id"])
+                logger.info(r_ids)
+
+                r_names = []
+                for r_id in r_ids:
+                    logger.info(f"{r_id} {type(r_id)}")
+                    role_name = (await db.roles.find_one({"_id": r_id}))["name"]
+                    r_names.append(role_name)
+                logger.info(r_names)
+                return UserResponse(**user, roles=r_names)
+            raise HTTPException(status_code=404, detail="User not found")
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
@@ -82,20 +119,23 @@ class UserService:
             users = []
             cursor = db.users.find({})
             async for user in cursor:
+                logger.info(f"{user} {user["_id"]}")
                 role_ids = db.user_roles.find({"user_id": user["_id"]})
-                r_ids=[]
+                r_ids = []
                 async for role_id in role_ids:
                     r_ids.append(role_id["role_id"])
                 logger.info(r_ids)
 
                 r_names = []
                 for r_id in r_ids:
-                    logger.info(r_id)
+                    logger.info(f"{r_id} {type(r_id)}")
                     role_name = (await db.roles.find_one({"_id": r_id}))["name"]
+                    logger.info(f"{role_name} {type(role_name)}")
                     r_names.append(role_name)
                 logger.info(r_names)
                 user_response = UserResponse(**user, roles=r_names)
                 users.append(user_response)
+                logger.info("")
             return users
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))

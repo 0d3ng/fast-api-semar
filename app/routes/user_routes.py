@@ -25,16 +25,19 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 @router.post("/users/", response_model=UserResponse)
 async def create_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
-    token_data=verify_token(token=token,credentials_exception=credentials_exception)
-    return await UserService.create_user(user, token_data.user_id)
+    try:
+        token_data=verify_token(token=token,credentials_exception=credentials_exception)
+        return await UserService.create_user(user, token_data.user_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=str(e))
 
 @router.get("/users/{user_id}", response_model=UserResponse)
 async def read_user(user_id: str, token: str = Depends(oauth2_scheme)):
-    token_data = verify_token(token=token, credentials_exception=credentials_exception)
-    user = await UserService.get_user(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
+    try:
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await UserService.get_user(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.get("/users/", response_model=List[UserResponse])
 async def read_users(token: str = Depends(oauth2_scheme)):

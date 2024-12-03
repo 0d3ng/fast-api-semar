@@ -1,16 +1,16 @@
 from typing import Optional, List
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
 
 from app.utils.custom_fields import PydanticObjectId
 
 
 class UserCreate(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     password: str
     name: str
-    roles: Optional[List[PydanticObjectId]] = []
+    roles: Optional[List[str]] = []
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -20,7 +20,7 @@ class UserUpdate(BaseModel):
     email: Optional[str] = None
     password: Optional[str] = None
     name: Optional[str] = None
-    roles: Optional[List[PydanticObjectId]] = None
+    roles: Optional[List[str]] = None
     active: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

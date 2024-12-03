@@ -73,6 +73,10 @@ async def seed():
                 "role_id":result_roles.inserted_ids[0]
             },
             {
+                "user_id": result_users.inserted_ids[0],
+                "role_id": result_roles.inserted_ids[1]
+            },
+            {
                 "user_id": result_users.inserted_ids[1],
                 "role_id": result_roles.inserted_ids[1]
             },
@@ -81,6 +85,7 @@ async def seed():
                 "role_id": result_roles.inserted_ids[2]
             }
         ]
+        print(user_roles)
 
         await database.user_roles.insert_many(user_roles)
 

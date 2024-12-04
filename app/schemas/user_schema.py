@@ -21,7 +21,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
     name: Optional[str] = None
     roles: Optional[List[str]] = None
-    active: Optional[str] = None
+    active: Optional[bool] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

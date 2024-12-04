@@ -11,7 +11,7 @@ from app.middlewares.auth import verify_password, create_access_token
 from app.models.user import User
 from app.schemas.user_schema import Token, UserResponse
 from app.schemas.user_schema import UserCreate, UserUpdate
-from app.utils.db import db, logger
+from app.utils.db import db
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -146,12 +146,25 @@ class UserService:
     async def update_user(user_id: str, user_update: UserUpdate, current_user: str):
         try:
             update_data = {k: v for k, v in user_update.model_dump(exclude_unset=True).items() if v is not None}
+            logger.info(update_data)
             if "password" in update_data:
-                update_data["hashed_password"] = pwd_context.hash(update_data.pop("password"))
+                update_data["password"] = pwd_context.hash(update_data.pop("password"))
+            roles = update_data["roles"]
+            update_data.pop("roles", None)
             update_data["updated_at"] = datetime_jpn
             update_data["updated_by"] = current_user
+            logger.info(update_data)
             result = await db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
             if result.matched_count == 1:
+                roles_update = []
+                logger.info(roles)
+                for role in roles:
+                    roles_update.append({"user_id": ObjectId(user_id), "role_id": ObjectId(role)})
+                if roles_update:
+                    logger.info(roles_update)
+                    await db.user_roles.delete_many({"user_id": ObjectId(user_id)})  # for update the user roles
+                    result_inserted = await db.user_roles.insert_many(roles_update)
+                    logger.info(f"{result_inserted}")
                 return await UserService.get_user(user_id)
             return None
         except (KeyError, TypeError, Exception) as e:

@@ -7,8 +7,9 @@ from app.middlewares.auth import verify_token
 from app.schemas.user_schema import Token
 from app.schemas.user_schema import UserCreate, UserUpdate, UserResponse
 from app.services.user_service import UserService
-from app.utils.logger import logger
+from app.utils.logger import get_logger
 
+logger = get_logger(__name__)
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,

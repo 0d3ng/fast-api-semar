@@ -1,28 +1,27 @@
 #  """
-#  Copyright 2024 lepen - All Rights Reserved
-#  Created by lepen on 2024-12-04 22:45:30
+#  Copyright (c) 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:57:28
 #
 #  Author: lepen
 #  Email: noprianto@s.okayama-u.ac.jp
-#  Last modified: 2024-12-04 07:11:19
-#  File: user.py
+#  Last modified: 2024-12-04 22:57:28
+#  File: device.py
 #  Description:
 #  """
-
 from typing import Optional
 
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict
 
 from app.utils.custom_fields import PydanticObjectId
 
 
-class User(BaseModel):
-    id: Optional[PydanticObjectId] = Field(alias='_id',default_factory=PydanticObjectId)
-    username: str
-    email: EmailStr
-    password: str  # Rename to align with the hashed password used in the script
+class Device(BaseModel):
+    id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
+    code: str
     name: str
-    active: Optional[bool] = True
+    type: str
+    protocol: str
+    project_id: str
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None

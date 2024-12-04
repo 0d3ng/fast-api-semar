@@ -1,0 +1,30 @@
+#  """
+#  Copyright (c) 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 23:02:16
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-12-04 23:02:16
+#  File: sensor_data.py
+#  Description:
+#  """
+from typing import Optional
+
+from pydantic import BaseModel, Field, ConfigDict
+
+from app.utils.custom_fields import PydanticObjectId
+
+
+class SensorData(BaseModel):
+    id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
+    device_id: str
+    data: dict
+    timestamp: Optional[str] = None
+    inserted_at: Optional[str] = None
+    inserted_by: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
+    deleted_at: Optional[str] = None
+    deleted_by: Optional[str] = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)

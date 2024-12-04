@@ -1,7 +1,16 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:42:32
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Date: 2024-12-04 22:37:38
+#  File: role.py
+#  Description:
+#  """
+
 from typing import Optional
-
 from pydantic import BaseModel, Field, ConfigDict
-
 from app.utils.custom_fields import PydanticObjectId
 
 

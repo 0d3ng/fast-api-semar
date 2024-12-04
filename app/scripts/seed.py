@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:46:43
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-12-04 08:06:30
+#  File: seed.py
+#  Description:
+#  """
+
 import asyncio
 import os
 from datetime import datetime

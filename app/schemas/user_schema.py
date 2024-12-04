@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:46:35
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-12-04 21:05:08
+#  File: user_schema.py
+#  Description:
+#  """
+
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, ConfigDict, EmailStr

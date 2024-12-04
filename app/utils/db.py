@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:47:25
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-11-27 22:54:07
+#  File: db.py
+#  Description:
+#  """
+
 from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 import os

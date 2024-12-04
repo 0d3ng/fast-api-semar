@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:46:21
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-12-04 21:05:08
+#  File: role_schema.py
+#  Description:
+#  """
+
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field

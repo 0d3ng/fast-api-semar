@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:45:30
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-12-04 07:11:19
+#  File: user.py
+#  Description:
+#  """
+
 from typing import Optional, List
 
 from pydantic import BaseModel, Field, ConfigDict, EmailStr

@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:45:51
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-12-04 21:05:08
+#  File: auth.py
+#  Description:
+#  """
+
 import os
 import traceback
 from datetime import datetime, timedelta

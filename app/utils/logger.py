@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:47:31
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-11-27 21:29:14
+#  File: logger.py
+#  Description:
+#  """
+
 import logging
 from logging.handlers import RotatingFileHandler
 import os

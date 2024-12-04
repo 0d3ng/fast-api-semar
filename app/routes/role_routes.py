@@ -1,3 +1,14 @@
+#  """
+#  Copyright 2024 lepen - All Rights Reserved
+#  Created by lepen on 2024-12-04 22:46:04
+#
+#  Author: lepen
+#  Email: noprianto@s.okayama-u.ac.jp
+#  Last modified: 2024-12-04 21:05:08
+#  File: role_routes.py
+#  Description:
+#  """
+
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status

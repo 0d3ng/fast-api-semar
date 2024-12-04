@@ -6,7 +6,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 
 class Role(BaseModel):
-    id: Optional[PydanticObjectId] = Field(alias='_id')
+    id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
     name: str
     description: Optional[str] = None
     inserted_at: Optional[str] = None

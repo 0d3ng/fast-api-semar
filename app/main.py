@@ -2,7 +2,7 @@ import signal
 
 import fastapi
 from fastapi import FastAPI
-from app.routes import user_routes
+from app.routes import user_routes, role_routes
 import uvicorn
 import os
 from app.utils.logger import get_logger
@@ -23,6 +23,7 @@ def on_shutdown():
 
 
 app.include_router(user_routes.router, prefix="/api", tags=["Users"])
+app.include_router(role_routes.router, prefix="/api", tags=["Roles"])
 app.add_api_route('/shutdown', shutdown, methods=['GET'])
 
 if __name__ == "__main__":

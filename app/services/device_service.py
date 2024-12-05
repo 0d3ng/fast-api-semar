@@ -62,9 +62,9 @@ class DeviceService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_device(role_id: str):
+    async def get_device(device_id: str):
         try:
-            project = await db.devices.find_one({"_id": ObjectId(role_id)})
+            project = await db.devices.find_one({"_id": ObjectId(device_id)})
             if project:
                 return DeviceResponse(**project)
             raise HTTPException(status_code=404, detail="Device not found")

@@ -19,6 +19,7 @@ from pytz import timezone
 from app.models.device import Device
 from app.schemas.device_schema import DeviceCreateUpdate, DeviceResponse
 from app.utils.db import db
+from app.utils.generator import generate_random_alphanumeric_hexa
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -32,21 +33,30 @@ class DeviceService:
         try:
             logger.info(device)
             new_device: Device = Device(
+                code=generate_random_alphanumeric_hexa(),
                 name=device.name,
-                description=device.description,
+                type=device.type,
+                protocol=device.protocol,
+                project_id=device.project_id,
+                active=device.active,
                 inserted_at=datetime_jpn,
                 inserted_by=current_user
             )
             logger.info(new_device)
             new_device_inserted = await db.devices.insert_one(new_device.model_dump(by_alias=True))
-            new_user_id = new_device_inserted.inserted_id
-            return DeviceResponse(_id=new_user_id,
-                                   name=device.name,
-                                   description=device.description,
-                                   inserted_at=datetime_jpn,
-                                   inserted_by=current_user)
+            new_device_id = new_device_inserted.inserted_id
+            logger.info(f"{new_device_id} {type(new_device_id)}")
+            return DeviceResponse(_id=new_device_id,
+                                  code=new_device.code,
+                                  name=device.name,
+                                  type=device.type,
+                                  protocol=device.protocol,
+                                  project_id=device.project_id,
+                                  active=device.active,
+                                  inserted_at=datetime_jpn,
+                                  inserted_by=current_user)
         except Exception as e:
-            logger.error(f"Failed to create role: {e}")
+            logger.error(f"Failed to create device: {e}")
             tb_str = ''.join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
@@ -57,7 +67,7 @@ class DeviceService:
             project = await db.devices.find_one({"_id": ObjectId(role_id)})
             if project:
                 return DeviceResponse(**project)
-            raise HTTPException(status_code=404, detail="Role not found")
+            raise HTTPException(status_code=404, detail="Device not found")
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")

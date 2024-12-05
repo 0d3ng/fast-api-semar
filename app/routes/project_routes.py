@@ -26,7 +26,7 @@ credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           headers={"WWW-Authenticate": "Bearer"})
 
 @router.post("/projects/", response_model=ProjectResponse)
-async def create_role(project: ProjectCreateUpdate, token: str = Depends(oauth2_scheme)):
+async def create_project(project: ProjectCreateUpdate, token: str = Depends(oauth2_scheme)):
     try:
         token_data=verify_token(token=token,credentials_exception=credentials_exception)
         return await ProjectService.create_project(project, token_data.user_id)
@@ -34,7 +34,7 @@ async def create_role(project: ProjectCreateUpdate, token: str = Depends(oauth2_
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=str(e))
 
 @router.get("/projects/{project_id}", response_model=ProjectResponse)
-async def read_role(project_id: str, token: str = Depends(oauth2_scheme)):
+async def read_project(project_id: str, token: str = Depends(oauth2_scheme)):
     try:
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await ProjectService.get_project(project_id)
@@ -42,26 +42,26 @@ async def read_role(project_id: str, token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.get("/projects/", response_model=List[ProjectResponse])
-async def read_roles(token: str = Depends(oauth2_scheme)):
+async def read_projects(token: str = Depends(oauth2_scheme)):
     try:
-        logger.info("get roles")
+        logger.info("get projects")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await ProjectService.get_all_projects()
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.put("/projects/{project_id}", response_model=ProjectResponse)
-async def update_role(project_id: str, project: ProjectCreateUpdate, token: str = Depends(oauth2_scheme)):
+async def update_project(project_id: str, project: ProjectCreateUpdate, token: str = Depends(oauth2_scheme)):
     token_data = verify_token(token=token, credentials_exception=credentials_exception)
     updated_user = await ProjectService.update_project(project_id, project, token_data.user_id)
     if not updated_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return updated_user
 
 @router.delete("/projects/{project_id}")
-async def delete_role(project_id: str, token: str = Depends(oauth2_scheme)):
+async def delete_project(project_id: str, token: str = Depends(oauth2_scheme)):
     token_data = verify_token(token=token, credentials_exception=credentials_exception)
     success = await ProjectService.delete_project(project_id, token_data.user_id)
     if not success:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     return {"msg": "Project deleted successfully"}

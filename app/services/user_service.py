@@ -20,7 +20,8 @@ from pytz import timezone
 
 from app.middlewares.auth import verify_password, create_access_token
 from app.models.user import User
-from app.schemas.user_schema import Token, UserResponse
+from app.schemas.token_schema import TokenLogin
+from app.schemas.user_schema import UserResponse
 from app.schemas.user_schema import UserCreate, UserUpdate
 from app.utils.db import db
 from app.utils.logger import get_logger
@@ -53,7 +54,7 @@ class UserService:
                 "username": user.username
             }
             access_token = create_access_token(payload, expires_delta=expire)
-            return Token(access_token=access_token, token_type="bearer")
+            return TokenLogin(access_token=access_token, token_type="bearer")
         except Exception as e:
             logger.error(f"failed to create access token: {e}")
             raise HTTPException(status_code=500, detail=str(e))

@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 
 from app.middlewares.auth import verify_token
-from app.schemas.user_schema import Token
+from app.schemas.token_schema import TokenLogin
 from app.schemas.user_schema import UserCreate, UserUpdate, UserResponse
 from app.services.user_service import UserService
 from app.utils.logger import get_logger
@@ -27,7 +27,7 @@ credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail="Could not validate credentials",
                                           headers={"WWW-Authenticate": "Bearer"})
 
-@router.post("/login/", response_model=Token)
+@router.post("/login/", response_model=TokenLogin)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     logger.info(f"username: {form_data.username} password: {form_data.password}")
     user = await UserService.authenticate_user(form_data.username, form_data.password)

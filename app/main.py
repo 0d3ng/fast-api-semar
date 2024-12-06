@@ -13,7 +13,7 @@ import signal
 
 import fastapi
 from fastapi import FastAPI
-from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes
+from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes
 import uvicorn
 import os
 from app.utils.logger import get_logger
@@ -34,6 +34,7 @@ def on_shutdown():
 
 
 app.include_router(sensor_routes.router, prefix="/api", tags=["Sensors"])
+app.include_router(token_routes.router, prefix="/api", tags=["Tokens"])
 app.include_router(device_routes.router, prefix="/api", tags=["Devices"])
 app.include_router(project_routes.router, prefix="/api", tags=["Projects"])
 app.include_router(user_routes.router, prefix="/api", tags=["Users"])

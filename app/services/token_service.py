@@ -1,4 +1,14 @@
-import os
+#   """
+#   Copyright (c) 2024 lepen - All Rights Reserved
+#   Created by lepen on 2024-12-06 21:35:02
+#  #
+#   Author: lepen
+#   Email: noprianto@s.okayama-u.ac.jp
+#   Last modified: 2024-12-06 21:08:07
+#   File: token_service.py
+#   Description:
+#   """
+
 import traceback
 from datetime import datetime, timedelta
 
@@ -12,6 +22,7 @@ from app.models.token import Token
 from app.models.user import User
 from app.schemas.token_schema import TokenCreate, TokenResponse
 from app.utils.db import db
+from app.utils.generator import calculate_minutes_between_dates
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -24,9 +35,12 @@ class TokenService:
     async def create_token(token: TokenCreate, user: User):
         try:
             logger.info(token)
-            expire = timedelta(minutes=int(token.expires_in))
+            now = datetime.now(tz=timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")
+            minutes = calculate_minutes_between_dates(now, token.expires_at)
+            logger.warn(f"token will be expired in {minutes} minutes")
+            expire = timedelta(minutes=minutes)
             payload = {
-                "user_id": user.id,
+                "user_id": str(user.id),
                 "username": user.username
             }
             access_token = create_access_token(payload, expires_delta=expire)
@@ -37,7 +51,7 @@ class TokenService:
                 description=token.description,
                 expires_at=token.expires_at,
                 inserted_at=datetime_jpn,
-                inserted_by=user.id
+                inserted_by=str(user.id)
             )
             logger.info(new_token)
             new_token_inserted = await db.tokens.insert_one(new_token.model_dump(by_alias=True))
@@ -49,7 +63,7 @@ class TokenService:
                                  description=token.description,
                                  expires_at=token.expires_at,
                                  inserted_at=datetime_jpn,
-                                 inserted_by=user.id
+                                 inserted_by=str(user.id)
                                  )
         except Exception as e:
             logger.error(f"Failed to create token: {e}")
@@ -60,7 +74,7 @@ class TokenService:
     @staticmethod
     async def get_token(token_id: str):
         try:
-            token = await db.users.find_one({"_id": ObjectId(token_id)})
+            token = await db.tokens.find_one({"_id": ObjectId(token_id)})
             if token:
                 return TokenResponse(**token)
             raise HTTPException(status_code=404, detail="Token not found")
@@ -73,7 +87,7 @@ class TokenService:
     async def get_all_tokens():
         try:
             tokens = []
-            cursor = db.tokenss.find({})
+            cursor = db.tokens.find({})
             async for token in cursor:
                 logger.info(f"{token} {token["_id"]}")
                 token_response = TokenResponse(**token)

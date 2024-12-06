@@ -13,7 +13,7 @@ import signal
 
 import fastapi
 from fastapi import FastAPI
-from app.routes import user_routes, role_routes, device_routes, project_routes
+from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes
 import uvicorn
 import os
 from app.utils.logger import get_logger
@@ -33,6 +33,7 @@ def on_shutdown():
     logger.info('Server shutting down...')
 
 
+app.include_router(sensor_routes.router, prefix="/api", tags=["Sensors"])
 app.include_router(device_routes.router, prefix="/api", tags=["Devices"])
 app.include_router(project_routes.router, prefix="/api", tags=["Projects"])
 app.include_router(user_routes.router, prefix="/api", tags=["Users"])

@@ -80,17 +80,18 @@ class SensorActuatorService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def update_sensor_data(sensor_data_id: str, sensor_data: SensorActuatorCreate,current_user: str):
+    async def update_sensor_data(sensor_data_id: str, sensor_data: SensorActuatorCreate, current_user: str):
         try:
             update_data = {k: v for k, v in sensor_data.model_dump(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = datetime_jpn
             update_data["updated_by"] = current_user
             logger.info(update_data)
             collection_name = "sensor_data_" + sensor_data.device_code
+            update_data.pop("device_code", None)
             result = await db[collection_name].update_one({"_id": ObjectId(sensor_data_id)}, {"$set": update_data})
             logger.info(result)
             if result.matched_count == 1:
-                return await SensorActuatorService.get_sensor_data(sensor_data_id)
+                return await SensorActuatorService.get_sensor_data(sensor_data_id, sensor_data.device_code)
             return None
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))

@@ -61,4 +61,4 @@ async def delete_sensor(sensor_data_id: str, device_code: str, token: str = Depe
     success = await SensorActuatorService.delete_sensor_data(sensor_data_id, device_code, token_data.user_id)
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    return {"msg": "Device deleted successfully"}
+    return {"msg": "Sensor data deleted successfully"}

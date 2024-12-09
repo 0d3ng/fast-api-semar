@@ -10,9 +10,10 @@
 #  """
 
 import signal
+from sys import prefix
 
 import fastapi
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes
 import uvicorn
 import os
@@ -22,24 +23,29 @@ logger = get_logger(__name__)
 
 app = FastAPI()
 
+route_unsecure = APIRouter(prefix="/api/v1", tags=["Unsecure"])
 
+@route_unsecure.get("/shutdown")
 def shutdown():
     os.kill(os.getpid(), signal.SIGTERM)
     return fastapi.Response(status_code=200, content='Server shutting down...')
 
+@route_unsecure.get("/health")
+def ping():
+    return fastapi.Response(status_code=200, content='Pong')
 
 @app.on_event('shutdown')
 def on_shutdown():
     logger.info('Server shutting down...')
 
 
-app.include_router(sensor_routes.router, prefix="/api", tags=["Sensors"])
-app.include_router(token_routes.router, prefix="/api", tags=["Tokens"])
-app.include_router(device_routes.router, prefix="/api", tags=["Devices"])
-app.include_router(project_routes.router, prefix="/api", tags=["Projects"])
-app.include_router(user_routes.router, prefix="/api", tags=["Users"])
-app.include_router(role_routes.router, prefix="/api", tags=["Roles"])
-app.add_api_route('/shutdown', shutdown, methods=['GET'])
+app.include_router(sensor_routes.router, prefix="/api/v1", tags=["Sensors"])
+app.include_router(token_routes.router, prefix="/api/v1", tags=["Tokens"])
+app.include_router(device_routes.router, prefix="/api/v1", tags=["Devices"])
+app.include_router(project_routes.router, prefix="/api/v1", tags=["Projects"])
+app.include_router(user_routes.router, prefix="/api/v1", tags=["Users"])
+app.include_router(role_routes.router, prefix="/api/v1", tags=["Roles"])
+app.include_router(route_unsecure)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

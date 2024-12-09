@@ -9,14 +9,15 @@
 #  Description:
 #  """
 
+import os
 import signal
-from sys import prefix
 
 import fastapi
-from fastapi import FastAPI, APIRouter
-from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes
 import uvicorn
-import os
+from fastapi import FastAPI, APIRouter
+from starlette.responses import JSONResponse
+
+from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,14 +26,17 @@ app = FastAPI()
 
 route_unsecure = APIRouter(prefix="/api/v1", tags=["Unsecure"])
 
+
 @route_unsecure.get("/shutdown")
 def shutdown():
     os.kill(os.getpid(), signal.SIGTERM)
     return fastapi.Response(status_code=200, content='Server shutting down...')
 
+
 @route_unsecure.get("/health")
 def ping():
-    return fastapi.Response(status_code=200, content='Pong')
+    return JSONResponse(status_code=200, content={"message": "pong"})
+
 
 @app.on_event('shutdown')
 def on_shutdown():

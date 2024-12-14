@@ -78,10 +78,10 @@ async def seed():
         result_users = await database.users.insert_many(users)
         result_roles = await database.roles.insert_many(roles)
 
-        user_roles=[
+        user_roles = [
             {
-                "user_id":result_users.inserted_ids[0],
-                "role_id":result_roles.inserted_ids[0]
+                "user_id": result_users.inserted_ids[0],
+                "role_id": result_roles.inserted_ids[0]
             },
             {
                 "user_id": result_users.inserted_ids[0],
@@ -104,6 +104,60 @@ async def seed():
     except Exception as e:
         print(f"An error has occurred: {e}")
         raise e
+
+    async def seed_type_protocol():
+        try:
+            client = AsyncIOMotorClient(
+                f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASS')}@{os.getenv('MONGO_HOST')}:{os.getenv('MONGO_PORT')}/{os.getenv('MONGO_DB')}?authSource=admin"
+            )
+            database = client[os.getenv('MONGO_DB')]
+            print(f"Database connection established")
+
+            types = [
+                {
+                    "name": "sensor",
+                    "description": "For sensor device",
+                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "inserted_by": "seeder"
+                },
+                {
+                    "name": "actuator",
+                    "description": "For actuator device",
+                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "inserted_by": "seeder"
+                }
+            ]
+
+            protocols = [
+                {
+                    "name": "MQTT",
+                    "description": "For MQTT protocol",
+                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "inserted_by": "seeder"
+                },
+                {
+                    "name": "HTTP",
+                    "description": "For HTTP protocol",
+                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "inserted_by": "seeder"
+                },
+                {
+                    "name": "KAFKA",
+                    "description": "For KAFKA protocol",
+                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "inserted_by": "seeder"
+                },
+                {
+                    "name": "RABBITMQ",
+                    "description": "For RABBITMQ protocol",
+                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                    "inserted_by": "seeder"
+                }
+            ]
+            await database.types.insert_many(types)
+            await database.protocols.insert_many(protocols)
+        except Exception as e:
+            print(f"An error has occurred: {e}")
 
 
 if __name__ == "__main__":

@@ -34,6 +34,7 @@ class ProjectService:
             new_project: Project = Project(
                 name=project.name,
                 description=project.description,
+                user_id=project.user_id,
                 inserted_at=datetime_jpn,
                 inserted_by=current_user
             )
@@ -43,6 +44,7 @@ class ProjectService:
             return ProjectResponse(_id=new_user_id,
                                 name=project.name,
                                 description=project.description,
+                                user_id=project.user_id,
                                 inserted_at=datetime_jpn,
                                 inserted_by=current_user)
         except Exception as e:

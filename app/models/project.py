@@ -18,7 +18,8 @@ from app.utils.custom_fields import PydanticObjectId
 class Project(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
     name: str
-    description: str  # Rename to align with the hashed password used in the script
+    description: str
+    user_id: str
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None

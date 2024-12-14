@@ -18,6 +18,7 @@ from app.utils.custom_fields import PydanticObjectId
 class ProjectCreateUpdate(BaseModel):
     name: str
     description: Optional[str] = None
+    user_id: str
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -25,6 +26,7 @@ class ProjectResponse(BaseModel):
     id: PydanticObjectId = Field(alias='_id')
     name: str
     description: Optional[str] = None
+    user_id: str
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None

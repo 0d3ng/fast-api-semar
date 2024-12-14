@@ -45,7 +45,7 @@ class TokenService:
             }
             access_token = create_access_token(payload, expires_delta=expire)
             new_token: Token = Token(
-                user_id=token.user_id,
+                device_id=token.device_id,
                 name=token.name,
                 token=access_token,
                 description=token.description,
@@ -57,7 +57,7 @@ class TokenService:
             new_token_inserted = await db.tokens.insert_one(new_token.model_dump(by_alias=True))
             new_token_id = new_token_inserted.inserted_id
             return TokenResponse(_id=new_token_id,
-                                 user_id=token.user_id,
+                                 device_id=token.device_id,
                                  name=token.name,
                                  token=access_token,
                                  description=token.description,

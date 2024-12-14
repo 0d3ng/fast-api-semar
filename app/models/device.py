@@ -19,6 +19,7 @@ class Device(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
     code: str
     name: str
+    description: str
     type: str
     protocol: str
     project_id: str

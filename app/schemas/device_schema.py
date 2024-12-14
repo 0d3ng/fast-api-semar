@@ -17,6 +17,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 class DeviceCreateUpdate(BaseModel):
     name: str
+    description: str
     type: str
     protocol: str
     project_id: str
@@ -29,6 +30,7 @@ class DeviceResponse(BaseModel):
     id: PydanticObjectId = Field(alias='_id')
     code: str
     name: str
+    description: str
     type: str
     protocol: str
     project_id: str

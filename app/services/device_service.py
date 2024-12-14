@@ -35,6 +35,7 @@ class DeviceService:
             new_device: Device = Device(
                 code=generate_random_alphanumeric_hexa(),
                 name=device.name,
+                description=device.description,
                 type=device.type,
                 protocol=device.protocol,
                 project_id=device.project_id,
@@ -49,6 +50,7 @@ class DeviceService:
             return DeviceResponse(_id=new_device_id,
                                   code=new_device.code,
                                   name=device.name,
+                                  description=device.description,
                                   type=device.type,
                                   protocol=device.protocol,
                                   project_id=device.project_id,

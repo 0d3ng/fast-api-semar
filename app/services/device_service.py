@@ -92,6 +92,26 @@ class DeviceService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
+    async def get_active_all_devices():
+        try:
+            projects = []
+            cursor = db.devices.find({
+                "active": True,
+                "deleted_at": {"$eq": None}
+            })
+            async for project in cursor:
+                logger.info(f"{project} {project["_id"]}")
+                project_response = DeviceResponse(**project)
+                projects.append(project_response)
+                logger.info("")
+            return projects
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+
+    @staticmethod
     async def update_device(device_id: str, device_update: DeviceCreateUpdate, current_user: str):
         try:
             update_data = {k: v for k, v in device_update.model_dump(exclude_unset=True).items() if v is not None}
@@ -107,6 +127,7 @@ class DeviceService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
+
 
     @staticmethod
     async def delete_device(project_id: str, current_user: str):

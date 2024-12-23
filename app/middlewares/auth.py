@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from app.schemas.token_schema import TokenData
+from app.schemas.token_schema import TokenData, TokenDataDevice
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -62,4 +62,19 @@ def verify_token(token: str, credentials_exception):
         tb_str = "".join(traceback.format_tb(e.__traceback__))
         logger.error(f"{e}\n{tb_str}")
         raise credentials_exception
+    return token_data
+
+
+def verify_token_device(token: str):
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        device_id: str = payload.get("device_id")
+        device_code: str = payload.get("device_code")
+        if device_id is None:
+            raise Exception("device_id is None")
+        token_data = TokenDataDevice(device_id=device_id, device_code=device_code)
+    except (JWTError, Exception) as e:
+        tb_str = "".join(traceback.format_tb(e.__traceback__))
+        logger.error(f"{e}\n{tb_str}")
+        raise Exception
     return token_data

@@ -21,6 +21,7 @@ class TokenCreate(BaseModel):
     description: Optional[str] = None
     expires_at: str
 
+
 class TokenResponse(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
     device_id: str
@@ -37,6 +38,7 @@ class TokenResponse(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+
 class TokenLogin(BaseModel):
     access_token: str
     token_type: str
@@ -45,3 +47,8 @@ class TokenLogin(BaseModel):
 class TokenData(BaseModel):
     user_id: str | None = None
     username: str | None = None
+
+
+class TokenDataDevice(BaseModel):
+    device_id: str
+    device_code: str

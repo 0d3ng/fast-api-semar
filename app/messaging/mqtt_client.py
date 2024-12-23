@@ -5,13 +5,17 @@ from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 
+from app.middlewares.auth import verify_token_device
+from app.schemas.sensor_actuator_schema import SensorActuatorCreate
 from app.services.device_service import DeviceService
-from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_USERNAME, MQTT_PASSWORD
+from app.services.sensor_actuator_service import SensorActuatorService
+from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 mqtt_cli = None
+topic_devices = []
 
 
 # Callback saat koneksi berhasil
@@ -20,6 +24,7 @@ async def on_connect_async(client, userdata, flags, rc):
         logger.info(f"Connected with result code {rc}")
         devices = await DeviceService.get_active_all_devices("mqtt")
         for device in devices:
+            topic_devices.append((MQTT_TOPIC + device.code))
             logger.info(f"device: {device}")
             logger.info(f"topic: {(MQTT_TOPIC + device.code)}")
             client.subscribe(MQTT_TOPIC + device.code, qos=1)
@@ -30,17 +35,28 @@ async def on_connect_async(client, userdata, flags, rc):
 # Synchronous wrapper for on_connect
 def on_connect(client, userdata, flags, rc):
     loop = asyncio.get_event_loop()
-    asyncio.run_coroutine_threadsafe(on_connect_async(client, userdata, flags, rc),loop)
+    asyncio.run_coroutine_threadsafe(on_connect_async(client, userdata, flags, rc), loop)
 
 
 # Callback saat pesan diterima
 def on_message(client, userdata, msg):
     try:
-        logger.info(f"Message received: {msg.payload.decode('utf-8')}")
+        logger.info(f"Message received: {msg.payload.decode('utf-8')} topic: {msg.topic}")
         data = json.loads(msg.payload.decode('utf-8'))
-        # Menyimpan data ke MongoDB menggunakan metode statis dari SensorService
-        data['timestamp'] = datetime.now(timezone.utc).timestamp()
-        # sensor_service.insert_sensor_data(data=data)
+        if msg.topic in topic_devices:
+            token = data.get("token")
+            try:
+                token_data = verify_token_device(token=token)
+                dt = SensorActuatorCreate(
+                    device_id=token_data.device_id,
+                    device_code=token_data.device_code,
+                    data=data.get("data"),
+                    timestamp=datetime.now(timezone.utc).timestamp())
+                res = SensorActuatorService.create_sensor_data(dt)
+                logger.info(res)
+                client.publish(topic=(MQTT_TOPIC_RESPONSE + token_data.device_code), payload=json.dumps(res), qos=1)
+            except Exception as e:
+                logger.warning(f"Warning on_message: {e}")
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {e}")
     except Exception as e:

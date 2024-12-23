@@ -21,6 +21,7 @@ from app.middlewares.auth import create_access_token
 from app.models.token import Token
 from app.models.user import User
 from app.schemas.token_schema import TokenCreate, TokenResponse
+from app.services.device_service import DeviceService
 from app.utils.db import db
 from app.utils.generator import calculate_minutes_between_dates
 from app.utils.logger import get_logger
@@ -39,9 +40,14 @@ class TokenService:
             minutes = calculate_minutes_between_dates(now, token.expires_at)
             logger.warn(f"token will be expired in {minutes} minutes")
             expire = timedelta(minutes=minutes)
+            device = await DeviceService.get_device(token.device_id)
+            if not device:
+                raise HTTPException(status_code=404, detail="Device not found")
             payload = {
                 "user_id": str(user.id),
-                "username": user.username
+                "username": user.username,
+                "device_id": str(device.id),
+                "device_code": device.code
             }
             access_token = create_access_token(payload, expires_delta=expire)
             new_token: Token = Token(

@@ -1,4 +1,5 @@
 # mqtt_client.py
+import asyncio
 import json
 from datetime import datetime, timezone
 
@@ -10,16 +11,26 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+mqtt_cli = None
+
 
 # Callback saat koneksi berhasil
-async def on_connect(client, userdata, flags, rc):
+async def on_connect_async(client, userdata, flags, rc):
     try:
         logger.info(f"Connected with result code {rc}")
-        devices = await DeviceService.get_active_all_devices()
+        devices = await DeviceService.get_active_all_devices("mqtt")
         for device in devices:
+            logger.info(f"device: {device}")
+            logger.info(f"topic: {(MQTT_TOPIC + device.code)}")
             client.subscribe(MQTT_TOPIC + device.code, qos=1)
     except Exception as e:
         logger.error(f"Error on_connect: {e}")
+
+
+# Synchronous wrapper for on_connect
+def on_connect(client, userdata, flags, rc):
+    loop = asyncio.get_event_loop()
+    asyncio.run_coroutine_threadsafe(on_connect_async(client, userdata, flags, rc),loop)
 
 
 # Callback saat pesan diterima
@@ -37,14 +48,18 @@ def on_message(client, userdata, msg):
 
 
 # Fungsi untuk memulai MQTT client
-def start_mqtt_client():
+async def start_mqtt_client():
+    global mqtt_cli
     try:
-        client = mqtt.Client()
-        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-        client.on_connect = on_connect
-        client.on_message = on_message
-
-        client.connect(MQTT_BROKER, MQTT_PORT, 60)
-        client.loop_start()
+        logger.info("Starting MQTT client")
+        mqtt_cli = mqtt.Client()
+        mqtt_cli.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+        mqtt_cli.on_connect = on_connect
+        mqtt_cli.on_message = on_message
+        logger.info(f"connecting MQTT broker: {MQTT_BROKER} port: {MQTT_PORT}")
+        mqtt_cli.connect(MQTT_BROKER, MQTT_PORT, 60)
+        while True:
+            mqtt_cli.loop(timeout=1)
+            await asyncio.sleep(1)
     except Exception as e:
         logger.error(f"Error in start_mqtt_client: {e}")

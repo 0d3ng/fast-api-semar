@@ -92,15 +92,16 @@ class DeviceService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_active_all_devices():
+    async def get_active_all_devices(protocol):
         try:
             projects = []
             cursor = db.devices.find({
                 "active": True,
-                "deleted_at": {"$eq": None}
+                "deleted_at": {"$eq": None},
+                "protocol": {"$eq": protocol}
             })
             async for project in cursor:
-                logger.info(f"{project} {project["_id"]}")
+                # logger.info(f"{project} {project["_id"]}")
                 project_response = DeviceResponse(**project)
                 projects.append(project_response)
                 logger.info("")

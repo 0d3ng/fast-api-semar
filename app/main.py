@@ -8,7 +8,7 @@
 #  File: main.py
 #  Description:
 #  """
-
+import asyncio
 import os
 import signal
 
@@ -17,7 +17,7 @@ import uvicorn
 from fastapi import FastAPI, APIRouter
 from starlette.responses import JSONResponse
 
-from app.messaging.mqtt_client import start_mqtt_client
+from app.messaging.mqtt_client import start_mqtt_client, mqtt_cli
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes
 from app.utils.logger import get_logger
 
@@ -42,12 +42,14 @@ def ping():
 @app.on_event("startup")
 async def startup():
     logger.info("Server starting up...")
-    start_mqtt_client()  # Start MQTT client
+    asyncio.create_task(start_mqtt_client())
 
 
 @app.on_event("shutdown")
 async def shutdown():
     logger.info("Server shutting down...")
+    mqtt_cli.loop_stop()
+    mqtt_cli.disconnect()
 
 
 app.include_router(sensor_routes.router, prefix="/api/v1", tags=["Sensors"])

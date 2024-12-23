@@ -12,15 +12,12 @@
 import unittest
 
 from app.services.device_service import DeviceService
-from app.utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 class DeviceTestCase(unittest.IsolatedAsyncioTestCase):
     @staticmethod
     async def test_get_active_all_devices():
-        devices = await DeviceService.get_active_all_devices()
+        devices = await DeviceService.get_active_all_devices("mqtt")
         for device in devices:
             print(f"device code: {device.code}")
 

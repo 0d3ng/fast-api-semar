@@ -9,7 +9,8 @@ from app.middlewares.auth import verify_token_device
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate
 from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
-from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD
+from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD, \
+    MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -42,9 +43,10 @@ def on_connect(client, userdata, flags, rc):
 # Callback saat pesan diterima
 def on_message(client, userdata, msg):
     try:
-        logger.info(f"Message received: {msg.payload.decode('utf-8')} topic: {msg.topic}")
-        data = json.loads(msg.payload.decode('utf-8'))
+        payload = msg.payload.decode('utf-8')
+        logger.info(f"Message received: {payload} topic: {msg.topic}")
         if msg.topic in topic_devices:
+            data = json.loads(payload)
             token = data.get("token")
             try:
                 token_data = verify_token_device(token=token)
@@ -58,6 +60,14 @@ def on_message(client, userdata, msg):
                 client.publish(topic=(MQTT_TOPIC_RESPONSE + token_data.device_code), payload=json.dumps(res), qos=1)
             except Exception as e:
                 logger.warning(f"Warning on_message: {e}")
+        elif msg.topic == MQTT_TOPIC_DEVICE_SUB:
+            device_code = payload
+            client.subscribe(MQTT_TOPIC + device_code, qos=1)
+            topic_devices.append(MQTT_TOPIC + device_code)
+        elif msg.topic == MQTT_TOPIC_DEVICE_UNSUB:
+            device_code = payload
+            client.unsubscribe(MQTT_TOPIC + device_code)
+            topic_devices.remove(MQTT_TOPIC + device_code)
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {e}")
     except Exception as e:

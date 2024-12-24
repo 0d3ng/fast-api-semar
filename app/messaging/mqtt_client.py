@@ -30,6 +30,8 @@ async def on_connect_async(client, userdata, flags, rc):
             logger.info(f"device: {device}")
             logger.info(f"topic: {(MQTT_TOPIC + device.code)}")
             client.subscribe(MQTT_TOPIC + device.code, qos=1)
+        client.subscribe(MQTT_TOPIC_DEVICE_UNSUB, qos=1)
+        client.subscribe(MQTT_TOPIC_DEVICE_SUB, qos=1)
     except Exception as e:
         logger.error(f"Error on_connect: {e}")
 
@@ -63,11 +65,15 @@ def on_message(client, userdata, msg):
         elif msg.topic == MQTT_TOPIC_DEVICE_SUB:
             device_code = payload
             client.subscribe(MQTT_TOPIC + device_code, qos=1)
+            logger.info(f"topic sub devices      : {topic_devices}")
             topic_devices.append(MQTT_TOPIC + device_code)
+            logger.info(f"topic sub devices after: {topic_devices}")
         elif msg.topic == MQTT_TOPIC_DEVICE_UNSUB:
             device_code = payload
             client.unsubscribe(MQTT_TOPIC + device_code)
+            logger.info(f"topic unsub devices      : {topic_devices}")
             topic_devices.remove(MQTT_TOPIC + device_code)
+            logger.info(f"topic unsub devices after: {topic_devices}")
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {e}")
     except Exception as e:

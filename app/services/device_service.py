@@ -19,7 +19,7 @@ from pytz import timezone
 from app.messaging.mqtt_publisher import publish_message
 from app.models.device import Device
 from app.schemas.device_schema import DeviceCreateUpdate, DeviceResponse
-from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB
+from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB
 from app.utils.db import db
 from app.utils.generator import generate_random_alphanumeric_hexa
 from app.utils.logger import get_logger
@@ -49,6 +49,8 @@ class DeviceService:
             new_device_inserted = await db.devices.insert_one(new_device.model_dump(by_alias=True))
             new_device_id = new_device_inserted.inserted_id
             logger.info(f"{new_device_id} {type(new_device_id)}")
+            if new_device_id:
+                publish_message(topic=MQTT_TOPIC_DEVICE_SUB, payload=new_device.code, qos=1)
             return DeviceResponse(_id=new_device_id,
                                   code=new_device.code,
                                   name=device.name,
@@ -96,18 +98,18 @@ class DeviceService:
     @staticmethod
     async def get_active_all_devices(protocol):
         try:
-            projects = []
+            devices = []
             cursor = db.devices.find({
                 "active": True,
                 "deleted_at": {"$eq": None},
                 "protocol": {"$eq": protocol}
             })
-            async for project in cursor:
-                # logger.info(f"{project} {project["_id"]}")
-                project_response = DeviceResponse(**project)
-                projects.append(project_response)
+            async for device in cursor:
+                logger.info(f"{device} {device["_id"]}")
+                project_response = DeviceResponse(**device)
+                devices.append(project_response)
                 logger.info("")
-            return projects
+            return devices
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
@@ -141,7 +143,7 @@ class DeviceService:
             if result.matched_count == 1:
                 device = await db.devices.find_one({"_id": ObjectId(device_id)})
                 if device:
-                    publish_message((MQTT_TOPIC_DEVICE_UNSUB + device.code), device.code, qos=1)
+                    publish_message(topic=MQTT_TOPIC_DEVICE_UNSUB, payload=device["code"], qos=1)
                 return True
             return False
         except (KeyError, TypeError, Exception) as e:

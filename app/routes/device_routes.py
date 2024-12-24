@@ -35,7 +35,7 @@ async def read_device(device_id: str, token: str = Depends(oauth2_scheme)):
 @router.get("/devices/", response_model=List[DeviceResponse])
 async def read_devices(token: str = Depends(oauth2_scheme)):
     try:
-        logger.info("get roles")
+        logger.info("get devices")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await DeviceService.get_all_devices()
     except Exception as e:

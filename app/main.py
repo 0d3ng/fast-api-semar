@@ -17,7 +17,7 @@ import uvicorn
 from fastapi import FastAPI, APIRouter
 from starlette.responses import JSONResponse
 
-from app.messaging.mqtt_client import start_mqtt_client, mqtt_cli
+from app.messaging.mqtt_client import start_mqtt_client, mqtt_cli, running
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes
 from app.utils.logger import get_logger
 
@@ -47,9 +47,9 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
+    global running
     logger.info("Server shutting down...")
-    mqtt_cli.loop_stop()
-    mqtt_cli.disconnect()
+    running = False
 
 
 app.include_router(sensor_routes.router, prefix="/api/v1", tags=["Sensors"])

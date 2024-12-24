@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 
 mqtt_cli = None
 topic_devices = []
+running = True
 
 
 # Callback saat koneksi berhasil
@@ -74,8 +75,10 @@ async def start_mqtt_client():
         mqtt_cli.on_message = on_message
         logger.info(f"connecting MQTT broker: {MQTT_BROKER} port: {MQTT_PORT}")
         mqtt_cli.connect(MQTT_BROKER, MQTT_PORT, 60)
-        while True:
+        while running:
             mqtt_cli.loop(timeout=1)
             await asyncio.sleep(1)
+        mqtt_cli.disconnect()
+        logger.info("Disconnected")
     except Exception as e:
         logger.error(f"Error in start_mqtt_client: {e}")

@@ -13,6 +13,7 @@ import os
 import traceback
 from datetime import datetime, timedelta
 
+import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
@@ -28,7 +29,7 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class UserService:

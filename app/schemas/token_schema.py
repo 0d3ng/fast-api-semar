@@ -8,6 +8,7 @@
 #  File: token_schema.py
 #  Description:
 #  """
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -19,7 +20,7 @@ class TokenCreate(BaseModel):
     device_id: Optional[str] = None
     name: str
     description: Optional[str] = None
-    expires_at: str
+    expires_at: datetime
 
 
 class TokenResponse(BaseModel):
@@ -28,12 +29,12 @@ class TokenResponse(BaseModel):
     name: str
     token: str
     description: Optional[str] = None
-    expires_at: str
-    inserted_at: Optional[str] = None
+    expires_at: datetime
+    inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None
-    deleted_at: Optional[str] = None
+    deleted_at: Optional[datetime] = None
     deleted_by: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

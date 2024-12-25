@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -11,12 +12,12 @@ class Token(BaseModel):
     name: str
     token: str
     description: Optional[str] = None
-    expires_at: str
-    inserted_at: Optional[str] = None
+    expires_at: datetime
+    inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None
-    deleted_at: Optional[str] = None
+    deleted_at: Optional[datetime] = None
     deleted_by: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

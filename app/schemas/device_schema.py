@@ -8,6 +8,7 @@
 #  File: device_schema.py
 #  Description:
 #  """
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -35,11 +36,11 @@ class DeviceResponse(BaseModel):
     protocol: str
     project_id: str
     active: bool
-    inserted_at: Optional[str] = None
+    inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None
-    deleted_at: Optional[str] = None
+    deleted_at: Optional[datetime] = None
     deleted_by: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

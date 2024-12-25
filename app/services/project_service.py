@@ -11,6 +11,7 @@
 import traceback
 from datetime import datetime
 
+import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
@@ -23,7 +24,7 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class ProjectService:
@@ -42,11 +43,11 @@ class ProjectService:
             new_project_inserted = await db.projects.insert_one(new_project.model_dump(by_alias=True))
             new_user_id = new_project_inserted.inserted_id
             return ProjectResponse(_id=new_user_id,
-                                name=project.name,
-                                description=project.description,
-                                user_id=project.user_id,
-                                inserted_at=datetime_jpn,
-                                inserted_by=current_user)
+                                   name=project.name,
+                                   description=project.description,
+                                   user_id=project.user_id,
+                                   inserted_at=datetime_jpn,
+                                   inserted_by=current_user)
         except Exception as e:
             logger.error(f"Failed to create role: {e}")
             tb_str = ''.join(traceback.format_tb(e.__traceback__))

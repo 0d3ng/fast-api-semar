@@ -8,6 +8,7 @@
 #  File: project.py
 #  Description:
 #  """
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field, EmailStr, ConfigDict
@@ -20,11 +21,11 @@ class Project(BaseModel):
     name: str
     description: str
     user_id: str
-    inserted_at: Optional[str] = None
+    inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None
-    deleted_at: Optional[str] = None
+    deleted_at: Optional[datetime] = None
     deleted_by: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

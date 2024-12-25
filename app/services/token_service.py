@@ -12,6 +12,7 @@
 import traceback
 from datetime import datetime, timedelta
 
+import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
@@ -28,7 +29,7 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class TokenService:
@@ -36,7 +37,7 @@ class TokenService:
     async def create_token(token: TokenCreate, user: User):
         try:
             logger.info(token)
-            now = datetime.now(tz=timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S")
+            now = datetime.now(tz=pytz.UTC)
             minutes = calculate_minutes_between_dates(now, token.expires_at)
             logger.warn(f"token will be expired in {minutes} minutes")
             expire = timedelta(minutes=minutes)
@@ -107,7 +108,6 @@ class TokenService:
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
-
     @staticmethod
     async def get_all_tokens():
         try:
@@ -123,7 +123,6 @@ class TokenService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
-
 
     @staticmethod
     async def delete_token(token_id: str, current_user: str):

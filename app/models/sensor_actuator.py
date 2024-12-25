@@ -8,6 +8,7 @@
 #  File: sensor_data.py
 #  Description:
 #  """
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field, ConfigDict
@@ -19,12 +20,12 @@ class SensorData(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
     device_id: str
     data: dict
-    timestamp: Optional[str] = None
-    inserted_at: Optional[str] = None
+    timestamp: Optional[datetime] = None
+    inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None
-    updated_at: Optional[str] = None
+    updated_at: Optional[datetime] = None
     updated_by: Optional[str] = None
-    deleted_at: Optional[str] = None
+    deleted_at: Optional[datetime] = None
     deleted_by: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)

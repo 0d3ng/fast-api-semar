@@ -12,10 +12,10 @@
 import traceback
 from datetime import datetime
 
+import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from pytz import timezone
 
 from app.models.role import Role
 from app.schemas.role_schema import RoleCreateUpdate, RoleResponse
@@ -24,7 +24,7 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class RoleService:

@@ -11,25 +11,25 @@
 import traceback
 from datetime import datetime, timedelta
 
+import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from pytz import timezone
 
 from app.messaging.mqtt_publisher import publish_message
 from app.middlewares.auth import create_access_token
 from app.models.device import Device
 from app.models.token import Token
 from app.schemas.device_schema import DeviceCreateUpdate, DeviceResponse
-from app.schemas.token_schema import TokenCreate, TokenData
+from app.schemas.token_schema import TokenData
 from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
 from app.utils.db import db
-from app.utils.generator import generate_random_alphanumeric_hexa, add_day_to_date_string
+from app.utils.generator import generate_random_alphanumeric_hexa, add_day_to_date
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class DeviceService:
@@ -54,7 +54,7 @@ class DeviceService:
             logger.info(f"{new_device_id} {type(new_device_id)}")
             if new_device_id:
                 publish_message(topic=MQTT_TOPIC_DEVICE_SUB, payload=new_device.code, qos=1)
-                future = add_day_to_date_string(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
+                future = add_day_to_date(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
                 expire = timedelta(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
                 payload = {
                     "user_id": current_user.user_id,

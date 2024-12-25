@@ -13,6 +13,7 @@ import asyncio
 import os
 from datetime import datetime
 
+import pytz
 from pytz import timezone
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -40,7 +41,7 @@ async def seed():
                 "password": pwd_context.hash("admin"),
                 "name": "Admin User",
                 "active": True,
-                "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                "inserted_at": datetime.now(tz=pytz.UTC),
                 "inserted_by": "seeder"
             },
             {
@@ -49,7 +50,7 @@ async def seed():
                 "password": pwd_context.hash("user"),
                 "name": "User One",
                 "active": True,
-                "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                "inserted_at": datetime.now(tz=pytz.UTC),
                 "inserted_by": "seeder"
             },
             {
@@ -58,19 +59,19 @@ async def seed():
                 "password": pwd_context.hash("user"),
                 "name": "User Two",
                 "active": True,
-                "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                "inserted_at": datetime.now(tz=pytz.UTC),
                 "inserted_by": "seeder"
             }
         ]
 
         roles = [{"name": "Admin", "description": "Administrator with full access rights",
-                  "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                  "inserted_at": datetime.now(tz=pytz.UTC),
                   "inserted_by": "seeder"},
                  {"name": "Farmer", "description": "User responsible for farm management",
-                  "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                  "inserted_at": datetime.now(tz=pytz.UTC),
                   "inserted_by": "seeder"},
                  {"name": "Technician", "description": "User responsible for technical maintenance",
-                  "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                  "inserted_at": datetime.now(tz=pytz.UTC),
                   "inserted_by": "seeder"}
                  ]
 

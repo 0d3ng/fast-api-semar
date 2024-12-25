@@ -42,3 +42,10 @@ def add_day_to_date_string(days: int, date_format: str = "%Y-%m-%d %H:%M:%S") ->
     except ValueError as e:
         # Raise an error if date parsing fails
         raise ValueError(f"Error parsing dates: {e}")
+
+
+def convert_to_datetime(date_string):
+    try:
+        return datetime.strptime(date_string, "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        return None

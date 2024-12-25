@@ -50,6 +50,15 @@ async def read_token(token_id: str, token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 
+@router.get("/tokens/device/{device_id}", response_model=TokenResponse)
+async def read_token(device_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await TokenService.get_token_by_device(device_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
 @router.get("/tokens/", response_model=List[TokenResponse])
 async def read_tokens(token: str = Depends(oauth2_scheme)):
     try:
@@ -58,6 +67,7 @@ async def read_tokens(token: str = Depends(oauth2_scheme)):
         return await TokenService.get_all_tokens()
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 @router.delete("/tokens/{token_id}")
 async def delete_token(token_id: str, token: str = Depends(oauth2_scheme)):

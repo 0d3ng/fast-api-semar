@@ -60,7 +60,7 @@ class DeviceService:
                     "user_id": current_user.user_id,
                     "username": current_user.username,
                     "device_id": str(new_device_id),
-                    "device_code": device.code
+                    "device_code": new_device.code
                 }
                 access_token = create_access_token(payload, expires_delta=expire)
                 new_token: Token = Token(

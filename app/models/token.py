@@ -7,7 +7,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 class Token(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
-    device_id: str
+    device_id: Optional[str] = None
     name: str
     token: str
     description: Optional[str] = None

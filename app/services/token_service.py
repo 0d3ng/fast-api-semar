@@ -90,33 +90,53 @@ class TokenService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_all_tokens():
+    async def get_token_by_device(device_id: str):
         try:
-            tokens = []
-            cursor = db.tokens.find({})
-            async for token in cursor:
-                logger.info(f"{token} {token["_id"]}")
-                token_response = TokenResponse(**token)
-                tokens.append(token_response)
-                logger.info("")
-            return tokens
+
+            token = await db.tokens.find({
+                "device_id": device_id,
+                "deleted_at": {"$eq": None},
+                "expires_at": {"$gte": datetime.now()}
+            })
+            if token:
+                return TokenResponse(**token)
+            raise HTTPException(status_code=404, detail="Token not found")
+
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
-    @staticmethod
-    async def delete_token(token_id: str, current_user: str):
-        try:
-            update_data = {
-                "deleted_at": datetime_jpn,
-                "deleted_by": current_user
-            }
-            result = await db.tokens.update_one({"_id": ObjectId(token_id)}, {"$set": update_data})
-            if result.matched_count == 1:
-                return True
-            return False
-        except (KeyError, TypeError, Exception) as e:
-            tb_str = "".join(traceback.format_tb(e.__traceback__))
-            logger.error(f"{e}\n{tb_str}")
-            raise HTTPException(status_code=500, detail=str(e))
+
+@staticmethod
+async def get_all_tokens():
+    try:
+        tokens = []
+        cursor = db.tokens.find({})
+        async for token in cursor:
+            logger.info(f"{token} {token["_id"]}")
+            token_response = TokenResponse(**token)
+            tokens.append(token_response)
+            logger.info("")
+        return tokens
+    except (KeyError, TypeError, Exception) as e:
+        tb_str = "".join(traceback.format_tb(e.__traceback__))
+        logger.error(f"{e}\n{tb_str}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@staticmethod
+async def delete_token(token_id: str, current_user: str):
+    try:
+        update_data = {
+            "deleted_at": datetime_jpn,
+            "deleted_by": current_user
+        }
+        result = await db.tokens.update_one({"_id": ObjectId(token_id)}, {"$set": update_data})
+        if result.matched_count == 1:
+            return True
+        return False
+    except (KeyError, TypeError, Exception) as e:
+        tb_str = "".join(traceback.format_tb(e.__traceback__))
+        logger.error(f"{e}\n{tb_str}")
+        raise HTTPException(status_code=500, detail=str(e))

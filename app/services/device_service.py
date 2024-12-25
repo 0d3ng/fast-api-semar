@@ -9,7 +9,7 @@
 #  Description:
 #  """
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from bson import ObjectId
 from fastapi import HTTPException
@@ -19,7 +19,8 @@ from pytz import timezone
 from app.messaging.mqtt_publisher import publish_message
 from app.models.device import Device
 from app.schemas.device_schema import DeviceCreateUpdate, DeviceResponse
-from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB
+from app.schemas.token_schema import TokenCreate
+from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
 from app.utils.db import db
 from app.utils.generator import generate_random_alphanumeric_hexa
 from app.utils.logger import get_logger
@@ -51,6 +52,17 @@ class DeviceService:
             logger.info(f"{new_device_id} {type(new_device_id)}")
             if new_device_id:
                 publish_message(topic=MQTT_TOPIC_DEVICE_SUB, payload=new_device.code, qos=1)
+                expire = timedelta(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
+                new_token = TokenCreate(device_id=str(new_device_id),
+                                        name=new_device.name,
+                                        description=new_device.description,
+                                        expires_at=expire,
+                                        inserted_at=datetime_jpn,
+                                        inserted_by=current_user)
+                new_token_inserted = await db.tokens.insert_one(new_token.model_dump(by_alias=True))
+                new_token_id = new_token_inserted.inserted_id
+                if new_token_id:
+                    logger.info(f"{new_token_id} {type(new_token_id)} created successfully")
             return DeviceResponse(_id=new_device_id,
                                   code=new_device.code,
                                   name=device.name,

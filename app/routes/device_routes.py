@@ -20,7 +20,7 @@ credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
 async def create_device(device: DeviceCreateUpdate, token: str = Depends(oauth2_scheme)):
     try:
         token_data=verify_token(token=token,credentials_exception=credentials_exception)
-        return await DeviceService.create_device(device, token_data.user_id)
+        return await DeviceService.create_device(device, token_data)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=str(e))
 

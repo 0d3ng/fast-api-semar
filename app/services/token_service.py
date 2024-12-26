@@ -94,7 +94,7 @@ class TokenService:
     async def get_token_by_device(device_id: str):
         try:
 
-            token = await db.tokens.find({
+            token = await db.tokens.find_one({
                 "device_id": device_id,
                 "deleted_at": {"$eq": None},
                 "expires_at": {"$gte": datetime.now()}

@@ -51,5 +51,7 @@ class TokenData(BaseModel):
 
 
 class TokenDataDevice(BaseModel):
+    user_id: str
     device_id: str
+    username: str
     device_code: str

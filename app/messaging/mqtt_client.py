@@ -4,9 +4,11 @@ import json
 from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
+import pytz
 
 from app.middlewares.auth import verify_token_device
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate
+from app.schemas.token_schema import TokenDataDevice
 from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD, \
@@ -52,14 +54,14 @@ def on_message(client, userdata, msg):
             token = data.get("token")
             try:
                 token_data = verify_token_device(token=token)
+                logger.info(f"token data: {token_data}")
                 dt = SensorActuatorCreate(
                     device_id=token_data.device_id,
                     device_code=token_data.device_code,
                     data=data.get("data"),
-                    timestamp=datetime.now(timezone.utc).timestamp())
-                res = SensorActuatorService.create_sensor_data(dt)
-                logger.info(res)
-                client.publish(topic=(MQTT_TOPIC_RESPONSE + token_data.device_code), payload=json.dumps(res), qos=1)
+                    timestamp=datetime.now(tz=pytz.UTC))
+                loop = asyncio.get_event_loop()
+                asyncio.create_task(process_sensor_data(client, dt, token_data))
             except Exception as e:
                 logger.warning(f"Warning on_message: {e}")
         elif msg.topic == MQTT_TOPIC_DEVICE_SUB:
@@ -76,6 +78,20 @@ def on_message(client, userdata, msg):
             logger.info(f"topic unsub devices after: {topic_devices}")
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {e}")
+    except Exception as e:
+        logger.error(f"Error on_message: {e}")
+
+
+async def process_sensor_data(client, data: SensorActuatorCreate, token: TokenDataDevice):
+    try:
+        res = await SensorActuatorService.create_sensor_data(data, token.user_id)
+        logger.info(f"res: {res} {type(res)}")
+        payload = {
+            'id': str(res.id),
+            'device_id': res.device_id,
+            'device_code': res.device_code
+        }
+        client.publish(topic=(MQTT_TOPIC_RESPONSE + token.device_code), payload=json.dumps(payload), qos=1)
     except Exception as e:
         logger.error(f"Error on_message: {e}")
 

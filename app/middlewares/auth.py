@@ -68,11 +68,13 @@ def verify_token(token: str, credentials_exception):
 def verify_token_device(token: str):
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id: str = payload.get("user_id")
+        username: str = payload.get("username")
         device_id: str = payload.get("device_id")
         device_code: str = payload.get("device_code")
         if device_id is None:
             raise Exception("device_id is None")
-        token_data = TokenDataDevice(device_id=device_id, device_code=device_code)
+        token_data = TokenDataDevice(user_id=user_id, username=username, device_id=device_id, device_code=device_code)
     except (JWTError, Exception) as e:
         tb_str = "".join(traceback.format_tb(e.__traceback__))
         logger.error(f"{e}\n{tb_str}")

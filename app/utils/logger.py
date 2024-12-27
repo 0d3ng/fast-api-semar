@@ -11,14 +11,9 @@
 
 import logging
 from logging.handlers import RotatingFileHandler
-import os
 
-# Load environment variables
-from dotenv import load_dotenv
-load_dotenv()
+from app.utils.config import LOG_LEVEL, LOG_FILE
 
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
-LOG_FILE = os.getenv("LOG_FILE", "app.log")
 
 def get_logger(name):
     logger = logging.getLogger(name)
@@ -39,6 +34,7 @@ def get_logger(name):
     logger.addHandler(file_handler)
 
     return logger
+
 
 # Example usage
 logger = get_logger(__name__)

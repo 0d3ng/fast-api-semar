@@ -23,7 +23,9 @@ from app.models.token import Token
 from app.models.user import User
 from app.schemas.token_schema import TokenCreate, TokenResponse
 from app.services.device_service import DeviceService
+from app.utils.config import ACCESS_TOKEN_SECRET
 from app.utils.db import db
+from app.utils.ecc_tools import generate_hmac_token
 from app.utils.generator import calculate_minutes_between_dates
 from app.utils.logger import get_logger
 
@@ -41,16 +43,17 @@ class TokenService:
             minutes = calculate_minutes_between_dates(now, token.expires_at)
             logger.warn(f"token will be expired in {minutes} minutes")
             expire = timedelta(minutes=minutes)
+            future_time = now + expire
             device = await DeviceService.get_device(token.device_id)
             if not device:
                 raise HTTPException(status_code=404, detail="Device not found")
             payload = {
-                "user_id": str(user.id),
-                "username": user.username,
-                "device_id": str(device.id),
-                "device_code": device.code
+                "usr_id": str(user.id),
+                "dev_id": str(device.id),
+                "dev_code": device.code,
+                "exp": int(future_time.timestamp())
             }
-            access_token = create_access_token(payload, expires_delta=expire)
+            access_token = generate_hmac_token(secret=ACCESS_TOKEN_SECRET, data=payload)
             new_token: Token = Token(
                 device_id=token.device_id,
                 name=token.name,

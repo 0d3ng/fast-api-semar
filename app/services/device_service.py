@@ -8,6 +8,7 @@
 #  File: device_service.py
 #  Description:
 #  """
+import time
 import traceback
 from datetime import datetime, timedelta
 
@@ -22,8 +23,10 @@ from app.models.device import Device
 from app.models.token import Token
 from app.schemas.device_schema import DeviceCreateUpdate, DeviceResponse
 from app.schemas.token_schema import TokenData
-from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
+from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS, \
+    ACCESS_TOKEN_SECRET
 from app.utils.db import db
+from app.utils.ecc_tools import generate_hmac_token
 from app.utils.generator import generate_random_alphanumeric_hexa, add_day_to_date
 from app.utils.logger import get_logger
 
@@ -55,14 +58,13 @@ class DeviceService:
             if new_device_id:
                 publish_message(topic=MQTT_TOPIC_DEVICE_SUB, payload=new_device.code, qos=1)
                 future = add_day_to_date(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
-                expire = timedelta(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
                 payload = {
-                    "user_id": current_user.user_id,
-                    "username": current_user.username,
-                    "device_id": str(new_device_id),
-                    "device_code": new_device.code
+                    "usr_id": current_user.user_id,
+                    "dev_id": str(new_device_id),
+                    "dev_code": new_device.code,
+                    "exp": int(time.mktime(future.timetuple()))
                 }
-                access_token = create_access_token(payload, expires_delta=expire)
+                access_token = generate_hmac_token(secret=ACCESS_TOKEN_SECRET, data=payload)
                 new_token: Token = Token(
                     device_id=str(new_device_id),
                     name=new_device.name,

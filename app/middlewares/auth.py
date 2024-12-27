@@ -9,23 +9,18 @@
 #  Description:
 #  """
 
-import os
 import traceback
 from datetime import datetime, timedelta
-from pytz import timezone
-from dotenv import load_dotenv
+
+import pytz
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.schemas.token_schema import TokenData, TokenDataDevice
+from app.utils.config import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
-load_dotenv()
-
-JWT_SECRET = os.getenv("JWT_SECRET")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -41,9 +36,9 @@ def get_password_hash(password):
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.now(tz=timezone("Asia/Tokyo")) + expires_delta
+        expire = datetime.now(pytz.UTC) + expires_delta
     else:
-        expire = datetime.now(tz=timezone("Asia/Tokyo")) + timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
+        expire = datetime.now(pytz.UTC) + timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     logger.info(to_encode)
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)

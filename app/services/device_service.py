@@ -10,7 +10,7 @@
 #  """
 import time
 import traceback
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytz
 from bson import ObjectId
@@ -18,15 +18,13 @@ from fastapi import HTTPException
 from passlib.context import CryptContext
 
 from app.messaging.mqtt_publisher import publish_message
-from app.middlewares.auth import create_access_token
+from app.middlewares.auth import create_token_enc
 from app.models.device import Device
 from app.models.token import Token
 from app.schemas.device_schema import DeviceCreateUpdate, DeviceResponse
 from app.schemas.token_schema import TokenData
-from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS, \
-    ACCESS_TOKEN_SECRET
+from app.utils.config import MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
 from app.utils.db import db
-from app.utils.ecc_tools import generate_hmac_token
 from app.utils.generator import generate_random_alphanumeric_hexa, add_day_to_date
 from app.utils.logger import get_logger
 
@@ -64,7 +62,7 @@ class DeviceService:
                     "dev_code": new_device.code,
                     "exp": int(time.mktime(future.timetuple()))
                 }
-                access_token = generate_hmac_token(secret=ACCESS_TOKEN_SECRET, data=payload)
+                access_token = create_token_enc(payload=payload)
                 new_token: Token = Token(
                     device_id=str(new_device_id),
                     name=new_device.name,

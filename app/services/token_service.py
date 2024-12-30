@@ -16,16 +16,13 @@ import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from pytz import timezone
 
-from app.middlewares.auth import create_access_token
+from app.middlewares.auth import create_token_enc
 from app.models.token import Token
 from app.models.user import User
 from app.schemas.token_schema import TokenCreate, TokenResponse
 from app.services.device_service import DeviceService
-from app.utils.config import ACCESS_TOKEN_SECRET
 from app.utils.db import db
-from app.utils.ecc_tools import generate_hmac_token
 from app.utils.generator import calculate_minutes_between_dates
 from app.utils.logger import get_logger
 
@@ -53,7 +50,7 @@ class TokenService:
                 "dev_code": device.code,
                 "exp": int(future_time.timestamp())
             }
-            access_token = generate_hmac_token(secret=ACCESS_TOKEN_SECRET, data=payload)
+            access_token = create_token_enc(payload=payload)
             new_token: Token = Token(
                 device_id=token.device_id,
                 name=token.name,

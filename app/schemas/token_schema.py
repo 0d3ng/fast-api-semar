@@ -53,5 +53,5 @@ class TokenData(BaseModel):
 class TokenDataDevice(BaseModel):
     user_id: str
     device_id: str
-    username: str
+    username: Optional[str] = None
     device_code: str

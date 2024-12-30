@@ -16,12 +16,14 @@ import os
 import random
 import string
 import zlib
+from datetime import timedelta
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 
-from app.utils.config import PRIVATE_KEY_PATH, PUBLIC_KEY_PATH
+from app.middlewares.auth import create_access_token, verify_token_device
+from app.utils.config import PRIVATE_KEY_PATH, PUBLIC_KEY_PATH, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
 
 
 def generate_secret(length=32):
@@ -165,7 +167,7 @@ def decrypt_data(private_key, encrypted_data_hex):
 # pem_private_key, pem_public_key = load_keys(public_key_path=PUBLIC_KEY_PATH, private_key_path=PRIVATE_KEY_PATH)
 
 # pem_private_key, pem_public_key = serialize_keys(private_key, public_key)
-# print(f"private key: {pem_private_key.decode()} public key: {pem_public_key.decode()}")
+# print(f"private key: {pem_private_key} public key: {pem_public_key}")
 
 data = {
     "dev_id": "device123",
@@ -180,7 +182,7 @@ data = {
 # print("Original Data:", data)
 # print("Encrypted Data (hex):", encrypted_data)
 # print("Length of Encrypted Data (in hex):", len(encrypted_data))
-# print("Decrypted Data:", decrypted_data)
+# print(f"Decrypted Data: {decrypted_data} dev id: {decrypted_data['dev_id']}")
 
 # secret_key = generate_secret(24)
 # print(f"Secret: {secret_key} type: {type(secret_key)}")
@@ -196,4 +198,16 @@ token = encrypt_cha_data(secret_key, data)
 print(f"Generated HMAC Token: {token} length: {len(token)}")
 
 decrypted = decrypt_cha_data(secret_key, token)
-print(f"Decrypted: {decrypted}")
+print(f"Decrypted: {decrypted} dev_id: {decrypted['dev_id']}")
+
+# token usually
+# data = {
+#     "dev_id": "device123",
+#     "dev_code": "ABC123",
+#     "usr_id": "user123"
+# }
+# exp = timedelta(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
+# token = create_access_token(data=data, expires_delta=exp)
+# print(f"Token: {token} len: {len(token)}")
+# token_dev = verify_token_device(token)
+# print(f"token_dev: {token_dev.device_id}")

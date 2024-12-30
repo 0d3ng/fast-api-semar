@@ -9,7 +9,6 @@
 #  Description:
 #  """
 
-import os
 import traceback
 from datetime import datetime, timedelta
 
@@ -17,13 +16,13 @@ import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
-from pytz import timezone
 
 from app.middlewares.auth import verify_password, create_access_token
 from app.models.user import User
 from app.schemas.token_schema import TokenLogin
-from app.schemas.user_schema import UserResponse
 from app.schemas.user_schema import UserCreate, UserUpdate
+from app.schemas.user_schema import UserResponse
+from app.utils.config import ACCESS_TOKEN_EXPIRE_MINUTES
 from app.utils.db import db
 from app.utils.logger import get_logger
 
@@ -49,7 +48,7 @@ class UserService:
     @staticmethod
     async def create_access_token(user: User):
         try:
-            expire = timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")))
+            expire = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
             payload = {
                 "user_id": str(user.id),
                 "username": user.username

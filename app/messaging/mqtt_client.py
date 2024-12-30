@@ -13,7 +13,7 @@ from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD, \
     MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_SECRET
-from app.utils.ecc_tools import verify_hmac_token
+from app.utils.encryption_tools import verify_hmac_token, decrypt_cha_data
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -54,17 +54,16 @@ def on_message(client, userdata, msg):
             data = json.loads(payload)
             token = data.get("token")
             try:
-                if verify_hmac_token(secret=ACCESS_TOKEN_SECRET, token=token,data=):
+                json_token=decrypt_cha_data(ACCESS_TOKEN_SECRET, token)
+                logger.info(f"Token: {json_token}")
 
-                token_data = verify_token_device(token=token)
-                logger.info(f"token data: {token_data}")
+
                 dt = SensorActuatorCreate(
-                    device_id=token_data.device_id,
-                    device_code=token_data.device_code,
+                    device_id=json_token['dev_id'],
+                    device_code=json_token['dev_code'],
                     data=data.get("data"),
                     timestamp=datetime.now(tz=pytz.UTC))
-                loop = asyncio.get_event_loop()
-                asyncio.create_task(process_sensor_data(client, dt, token_data))
+                asyncio.create_task(process_sensor_data(client, dt, json))
             except Exception as e:
                 logger.warning(f"Warning on_message: {e}")
         elif msg.topic == MQTT_TOPIC_DEVICE_SUB:

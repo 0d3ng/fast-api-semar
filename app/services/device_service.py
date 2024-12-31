@@ -18,7 +18,7 @@ from fastapi import HTTPException
 from passlib.context import CryptContext
 
 from app.messaging.mqtt_publisher import publish_message
-from app.middlewares.auth import create_token_enc
+from app.middlewares.auth import create_token_enc, create_access_token
 from app.models.device import Device
 from app.models.token import Token
 from app.schemas.device_schema import DeviceCreateUpdate, DeviceResponse
@@ -62,7 +62,14 @@ class DeviceService:
                     "dev_code": new_device.code,
                     "exp": int(time.mktime(future.timetuple()))
                 }
-                access_token = create_token_enc(payload=payload)
+                if device.protocol == "mqtt":
+                    access_token = create_token_enc(payload=payload)
+                else:
+                    payload = {
+                        "user_id": current_user.user_id,
+                        "username": current_user.username,
+                    }
+                    access_token = create_access_token(data=payload)
                 new_token: Token = Token(
                     device_id=str(new_device_id),
                     name=new_device.name,

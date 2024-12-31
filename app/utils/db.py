@@ -11,7 +11,7 @@
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.utils.config import MONGO_USER, MONGO_PASS, MONGO_HOST, MONGO_PORT, MONGODB_DB
+from app.utils.config import MONGO_USER, MONGO_PASS, MONGO_HOST, MONGO_PORT, MONGO_DB
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +25,7 @@ class Database:
         if Database._client is None:
             try:
                 Database._client = AsyncIOMotorClient(
-                    f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}/{MONGODB_DB}?authSource=admin"
+                    f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:{MONGO_PORT}/{MONGO_DB}?authSource=admin"
                 )
                 logger.info("Connected to MongoDB")
             except Exception as e:
@@ -34,4 +34,4 @@ class Database:
         return Database._client
 
 
-db = Database.get_client()[MONGODB_DB]
+db = Database.get_client()[MONGO_DB]

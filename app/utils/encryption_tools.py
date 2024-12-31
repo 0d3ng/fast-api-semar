@@ -16,14 +16,10 @@ import os
 import random
 import string
 import zlib
-from datetime import timedelta
 
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-
-from app.middlewares.auth import create_access_token, verify_token_device
-from app.utils.config import PRIVATE_KEY_PATH, PUBLIC_KEY_PATH, ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
 
 
 def generate_secret(length=32):
@@ -169,12 +165,12 @@ def decrypt_data(private_key, encrypted_data_hex):
 # pem_private_key, pem_public_key = serialize_keys(private_key, public_key)
 # print(f"private key: {pem_private_key} public key: {pem_public_key}")
 
-data = {
-    "dev_id": "device123",
-    "dev_code": "ABC123",
-    "usr_id": "user123",
-    "exp": "2024-12-31 23:59:59"
-}
+# data = {
+#     "dev_id": "device123",
+#     "dev_code": "ABC123",
+#     "usr_id": "user123",
+#     "exp": "2024-12-31 23:59:59"
+# }
 
 # encrypted_data = encrypt_data(public_key, data)
 # decrypted_data = decrypt_data(private_key, encrypted_data)
@@ -192,13 +188,13 @@ data = {
 # is_valid = verify_hmac_token(secret_key, data, token)
 # print(f"Verified HMAC Token: {is_valid}")
 
-secret_key = generate_key_cha_cha()
-print(f"Secret: {secret_key} type: {type(secret_key)}")
-token = encrypt_cha_data(secret_key, data)
-print(f"Generated HMAC Token: {token} length: {len(token)}")
-
-decrypted = decrypt_cha_data(secret_key, token)
-print(f"Decrypted: {decrypted} dev_id: {decrypted['dev_id']}")
+# secret_key = generate_key_cha_cha()
+# print(f"Secret: {secret_key} type: {type(secret_key)}")
+# token = encrypt_cha_data(secret_key, data)
+# print(f"Generated HMAC Token: {token} length: {len(token)}")
+#
+# decrypted = decrypt_cha_data(secret_key, token)
+# print(f"Decrypted: {decrypted} dev_id: {decrypted['dev_id']}")
 
 # token usually
 # data = {

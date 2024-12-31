@@ -1,19 +1,18 @@
 # mqtt_client.py
 import asyncio
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 
 import paho.mqtt.client as mqtt
 import pytz
 
-from app.middlewares.auth import verify_token_device
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate
 from app.schemas.token_schema import TokenDataDevice
 from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD, \
     MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_SECRET
-from app.utils.encryption_tools import verify_hmac_token, decrypt_cha_data
+from app.utils.encryption_tools import decrypt_cha_data
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)

@@ -9,6 +9,7 @@ from pytz import timezone
 
 from app.models.sensor_actuator import SensorData
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate, SensorActuatorResponse
+from app.schemas.token_schema import TokenDataDevice
 from app.utils.db import db
 from app.utils.logger import get_logger
 
@@ -19,30 +20,30 @@ datetime_jpn = datetime.now(tz=pytz.UTC)
 
 class SensorActuatorService:
     @staticmethod
-    async def create_sensor_data(sensor_data: SensorActuatorCreate, current_user: str):
+    async def create_sensor_data(sensor_data: SensorActuatorCreate, token: TokenDataDevice):
         try:
             logger.info(sensor_data)
             new_sensor_data: SensorData = SensorData(
-                device_id=sensor_data.device_id,
+                device_id=token.device_id,
                 data=sensor_data.data,
                 timestamp=sensor_data.timestamp,
                 inserted_at=datetime_jpn,
-                inserted_by=current_user
+                inserted_by=token.user_id
             )
             logger.info(new_sensor_data)
-            collection_name = "sensor_data_" + sensor_data.device_code
+            collection_name = "sensor_data_" + token.device_code
             logger.info(collection_name)
             new_sensor_data_inserted = await db[collection_name].insert_one(new_sensor_data.model_dump(by_alias=True))
             new_sensor_data_id = new_sensor_data_inserted.inserted_id
             logger.info(f"{new_sensor_data_id} {type(new_sensor_data_id)}")
             return SensorActuatorResponse(
                 _id=new_sensor_data_id,
-                device_id=sensor_data.device_id,
-                device_code=sensor_data.device_code,
+                device_id=token.device_id,
+                device_code=token.device_code,
                 data=sensor_data.data,
                 timestamp=sensor_data.timestamp,
                 inserted_at=datetime_jpn,
-                inserted_by=current_user
+                inserted_by=token.user_id
             )
         except Exception as e:
             logger.error(f"Failed to create sensor_data: {e}")

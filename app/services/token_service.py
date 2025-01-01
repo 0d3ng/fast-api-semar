@@ -44,8 +44,10 @@ class TokenService:
             if not device:
                 raise HTTPException(status_code=404, detail="Device not found")
             payload = {
-                "user_id": str(user.id),
-                "username": user.username
+                "usr_id": str(user.id),
+                "username": user.username,
+                "dev_id": token.device_id,
+                "dev_code": device.code
             }
             access_token = create_access_token(data=payload, expires_delta=expire)
             new_token: Token = Token(
@@ -107,7 +109,10 @@ class TokenService:
                 "expires_at": {"$gte": datetime.now()}
             })
             if token:
-                return TokenResponse(**token)
+                device = await DeviceService.get_device(device_id)
+                if not device:
+                    raise HTTPException(status_code=404, detail="Device not found")
+                return TokenResponse(**token, device_name=device.name)
             raise HTTPException(status_code=404, detail="Token not found")
 
         except (KeyError, TypeError, Exception) as e:
@@ -116,10 +121,14 @@ class TokenService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_all_tokens():
+    async def get_all_tokens(user_id: str = None):
         try:
             tokens = []
-            cursor = db.tokens.find({})
+            if user_id:
+                filter = {"inserted_by": user_id}
+            else:
+                filter = {}
+            cursor = db.tokens.find(filter)
             async for token in cursor:
                 logger.info(f"{token} {token["_id"]}")
                 device = await DeviceService.get_device(token["device_id"])
@@ -129,6 +138,7 @@ class TokenService:
                 tokens.append(token_response)
                 logger.info("")
             return tokens
+
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")

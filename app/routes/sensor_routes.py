@@ -20,8 +20,8 @@ credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
 @router.post("/sensors/", response_model=SensorActuatorResponse)
 async def create_sensor(sensor_data: SensorActuatorCreate, token: str = Depends(oauth2_scheme)):
     try:
-        token_data = verify_token(token=token, credentials_exception=credentials_exception)
-        return await SensorActuatorService.create_sensor_data(sensor_data, token_data.user_id)
+        token_data = verify_token(token=token, credentials_exception=credentials_exception, is_device=True)
+        return await SensorActuatorService.create_sensor_data(sensor_data, token_data)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

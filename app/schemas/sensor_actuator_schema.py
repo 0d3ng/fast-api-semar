@@ -7,12 +7,13 @@ from app.utils.custom_fields import PydanticObjectId
 
 
 class SensorActuatorCreate(BaseModel):
-    device_id: str
-    device_code: str
+    device_id: Optional[str] = None
+    device_code: Optional[str] = None
     data: dict
     timestamp: Optional[datetime] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
 
 class SensorActuatorResponse(BaseModel):
     id: PydanticObjectId = Field(alias='_id')

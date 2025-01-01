@@ -64,7 +64,7 @@ async def read_tokens(token: str = Depends(oauth2_scheme)):
     try:
         logger.info("get tokens")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
-        return await TokenService.get_all_tokens()
+        return await TokenService.get_all_tokens(token_data.user_id)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

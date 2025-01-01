@@ -13,16 +13,18 @@ logger = get_logger(__name__)
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                          detail="Could not validate credentials",
-                                          headers={"WWW-Authenticate": "Bearer"})
+                                      detail="Could not validate credentials",
+                                      headers={"WWW-Authenticate": "Bearer"})
+
 
 @router.post("/devices/", response_model=DeviceResponse)
 async def create_device(device: DeviceCreateUpdate, token: str = Depends(oauth2_scheme)):
     try:
-        token_data=verify_token(token=token,credentials_exception=credentials_exception)
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await DeviceService.create_device(device, token_data)
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 @router.get("/devices/{device_id}", response_model=DeviceResponse)
 async def read_device(device_id: str, token: str = Depends(oauth2_scheme)):
@@ -32,14 +34,16 @@ async def read_device(device_id: str, token: str = Depends(oauth2_scheme)):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+
 @router.get("/devices/", response_model=List[DeviceResponse])
 async def read_devices(token: str = Depends(oauth2_scheme)):
     try:
         logger.info("get devices")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
-        return await DeviceService.get_all_devices()
+        return await DeviceService.get_all_devices(token_data.user_id)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 @router.put("/devices/{device_id}", response_model=DeviceResponse)
 async def update_device(device_id: str, device: DeviceCreateUpdate, token: str = Depends(oauth2_scheme)):
@@ -48,6 +52,7 @@ async def update_device(device_id: str, device: DeviceCreateUpdate, token: str =
     if not updated_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
     return updated_user
+
 
 @router.delete("/devices/{device_id}")
 async def delete_device(device_id: str, token: str = Depends(oauth2_scheme)):

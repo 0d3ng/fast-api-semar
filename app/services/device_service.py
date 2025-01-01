@@ -68,6 +68,8 @@ class DeviceService:
                     payload = {
                         "user_id": current_user.user_id,
                         "username": current_user.username,
+                        "dev_id": str(new_device_id),
+                        "dev_code": new_device.code
                     }
                     access_token = create_access_token(data=payload)
                 new_token: Token = Token(
@@ -115,10 +117,14 @@ class DeviceService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_all_devices():
+    async def get_all_devices(user_id: str = None):
         try:
             projects = []
-            cursor = db.devices.find({})
+            if user_id:
+                filter = {"inserted_by": user_id}
+            else:
+                filter = {}
+            cursor = db.devices.find(filter)
             async for project in cursor:
                 logger.info(f"{project} {project["_id"]}")
                 project_response = DeviceResponse(**project)

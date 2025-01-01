@@ -67,10 +67,14 @@ class ProjectService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_all_projects():
+    async def get_all_projects(user_id: str = None):
         try:
             projects = []
-            cursor = db.projects.find({})
+            if user_id:
+                filter = {"inserted_by": user_id}
+            else:
+                filter = {}
+            cursor = db.projects.find(filter)
             async for project in cursor:
                 logger.info(f"{project} {project["_id"]}")
                 project_response = ProjectResponse(**project)

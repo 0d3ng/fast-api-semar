@@ -46,14 +46,23 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     return encoded_jwt
 
 
-def verify_token(token: str, credentials_exception):
+def verify_token(token: str, credentials_exception, is_device: bool = False):
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        user_id: str = payload.get("user_id")
-        username: str = payload.get("username")
-        if username is None:
-            raise credentials_exception
-        token_data = TokenData(user_id=user_id, username=username)
+        if is_device:
+            user_id: str = payload.get("usr_id")
+            device_id: str = payload.get("dev_id")
+            device_code: str = payload.get("dev_code")
+            if device_id is None:
+                raise credentials_exception
+            token_data = TokenDataDevice(user_id=user_id, device_id=device_id, device_code=device_code)
+        else:
+            user_id: str = payload.get("user_id")
+            username: str = payload.get("username")
+            if username is None:
+                raise credentials_exception
+            token_data = TokenData(user_id=user_id, username=username)
+
     except (JWTError, Exception) as e:
         tb_str = "".join(traceback.format_tb(e.__traceback__))
         logger.error(f"{e}\n{tb_str}")

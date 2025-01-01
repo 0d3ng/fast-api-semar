@@ -51,18 +51,21 @@ def on_message(client, userdata, msg):
         logger.info(f"Message received: {payload} topic: {msg.topic}")
         if msg.topic in topic_devices:
             data = json.loads(payload)
-            token = data.get("token")
+            token_dev = data.get("token")
             try:
-                json_token=decrypt_cha_data(ACCESS_TOKEN_SECRET, token)
+                json_token = decrypt_cha_data(ACCESS_TOKEN_SECRET, token_dev)
                 logger.info(f"Token: {json_token}")
-
-
                 dt = SensorActuatorCreate(
                     device_id=json_token['dev_id'],
                     device_code=json_token['dev_code'],
                     data=data.get("data"),
                     timestamp=datetime.now(tz=pytz.UTC))
-                asyncio.create_task(process_sensor_data(client, dt, json))
+                token_dev = TokenDataDevice(
+                    user_id=json_token['usr_id'],
+                    device_id=dt.device_id,
+                    device_code=dt.device_code
+                )
+                asyncio.create_task(process_sensor_data(client, dt, token_dev))
             except Exception as e:
                 logger.warning(f"Warning on_message: {e}")
         elif msg.topic == MQTT_TOPIC_DEVICE_SUB:

@@ -17,7 +17,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 
 class TokenCreate(BaseModel):
-    device_id: Optional[str] = None
+    device_id: str
     name: str
     description: Optional[str] = None
     expires_at: datetime
@@ -25,7 +25,8 @@ class TokenCreate(BaseModel):
 
 class TokenResponse(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
-    device_id: Optional[str] = None
+    device_id: str
+    device_name: str
     name: str
     token: str
     description: Optional[str] = None

@@ -17,7 +17,7 @@ from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
 
-from app.middlewares.auth import create_token_enc, create_access_token
+from app.middlewares.auth import create_access_token
 from app.models.token import Token
 from app.models.user import User
 from app.schemas.token_schema import TokenCreate, TokenResponse
@@ -60,8 +60,15 @@ class TokenService:
             logger.info(new_token)
             new_token_inserted = await db.tokens.insert_one(new_token.model_dump(by_alias=True))
             new_token_id = new_token_inserted.inserted_id
+            if not new_token_id:
+                raise HTTPException(status_code=500, detail="Insert token fail")
+            device = await DeviceService.get_device(token.device_id)
+            if not device:
+                raise HTTPException(status_code=404, detail="Device not found")
+            logger.info(f"device: {device} type: {type(device)}")
             return TokenResponse(_id=new_token_id,
                                  device_id=token.device_id,
+                                 device_name=device.name,
                                  name=token.name,
                                  token=access_token,
                                  description=token.description,
@@ -80,7 +87,10 @@ class TokenService:
         try:
             token = await db.tokens.find_one({"_id": ObjectId(token_id)})
             if token:
-                return TokenResponse(**token)
+                device = await DeviceService.get_device(token["device_id"])
+                if not device:
+                    raise HTTPException(status_code=404, detail="Device not found")
+                return TokenResponse(**token, device_name=device.name)
             raise HTTPException(status_code=404, detail="Token not found")
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
@@ -112,7 +122,10 @@ class TokenService:
             cursor = db.tokens.find({})
             async for token in cursor:
                 logger.info(f"{token} {token["_id"]}")
-                token_response = TokenResponse(**token)
+                device = await DeviceService.get_device(token["device_id"])
+                if not device:
+                    raise HTTPException(status_code=404, detail="Device not found")
+                token_response = TokenResponse(**token, device_name=device.name)
                 tokens.append(token_response)
                 logger.info("")
             return tokens

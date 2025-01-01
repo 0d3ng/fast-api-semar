@@ -25,6 +25,8 @@ def generate_random_alphanumeric_hexa(length=6):
 def calculate_minutes_between_dates(date1: datetime, date2: datetime) -> int:
     try:
         # Calculate the difference in time and convert seconds to minutes
+        if date2.tzinfo is None:
+            date2 = date2.replace(tzinfo=pytz.UTC)
         delta_minutes = abs((date2 - date1).total_seconds() / 60)
         return int(delta_minutes)
     except ValueError as e:

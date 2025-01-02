@@ -53,6 +53,15 @@ class MyTestCase(unittest.TestCase):
         print(f"response: {response.text} code: {response.status_code}")
         assert response.status_code == 200
 
+    @staticmethod
+    def test_get_last():
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3JfaWQiOiI2NzZjOTJkOGRkODhmNzk0ZmViZmE0ZDMiLCJ1c2VybmFtZSI6ImFkbWluIiwiZGV2X2lkIjoiNjc3NGQxMDkxMWVjY2ExYmU4MzU0NGQyIiwiZGV2X2NvZGUiOiJzYmJ1NXciLCJleHAiOjE3MzczOTE3NTl9.VwYdlRzZ2Y4g5vSD5En9zeEn9CppQRlJAOHfnMyJCHo"
+        device_code = "5f5sff"
+        headers = {"Authorization": f"Bearer {token}"}
+        response = client.get(f"/api/v1/sensors/{device_code}/latest", headers=headers)
+        print(f"response: {response.text} code: {response.status_code}")
+        assert response.status_code == 200
+
 
 if __name__ == '__main__':
     unittest.main()

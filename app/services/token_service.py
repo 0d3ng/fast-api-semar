@@ -28,13 +28,13 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class TokenService:
     @staticmethod
     async def create_token(token: TokenCreate, user: User):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             logger.info(token)
             now = datetime.now(tz=pytz.UTC)
             minutes = calculate_minutes_between_dates(now, token.expires_at)
@@ -147,6 +147,7 @@ class TokenService:
     @staticmethod
     async def delete_token(token_id: str, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {
                 "deleted_at": datetime_jpn,
                 "deleted_by": current_user

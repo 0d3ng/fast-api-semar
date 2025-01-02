@@ -30,13 +30,13 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class DeviceService:
     @staticmethod
     async def create_device(device: DeviceCreateUpdate, current_user: TokenData):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             logger.info(device)
             new_device: Device = Device(
                 code=generate_random_alphanumeric_hexa(),
@@ -159,6 +159,7 @@ class DeviceService:
     @staticmethod
     async def update_device(device_id: str, device_update: DeviceCreateUpdate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {k: v for k, v in device_update.model_dump(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = datetime_jpn
             update_data["updated_by"] = current_user
@@ -176,6 +177,7 @@ class DeviceService:
     @staticmethod
     async def delete_device(device_id: str, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {
                 "deleted_at": datetime_jpn,
                 "deleted_by": current_user

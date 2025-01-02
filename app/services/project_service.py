@@ -24,13 +24,13 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class ProjectService:
     @staticmethod
     async def create_project(project: ProjectCreateUpdate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             logger.info(project)
             new_project: Project = Project(
                 name=project.name,
@@ -89,6 +89,7 @@ class ProjectService:
     @staticmethod
     async def update_project(project_id: str, project_update: ProjectCreateUpdate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {k: v for k, v in project_update.model_dump(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = datetime_jpn
             update_data["updated_by"] = current_user
@@ -106,6 +107,7 @@ class ProjectService:
     @staticmethod
     async def delete_project(project_id: str, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {
                 "deleted_at": datetime_jpn,
                 "deleted_by": current_user

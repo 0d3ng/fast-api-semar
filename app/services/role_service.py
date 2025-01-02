@@ -24,13 +24,13 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class RoleService:
     @staticmethod
     async def create_role(role: RoleCreateUpdate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             logger.info(role)
             new_role: Role = Role(
                 name=role.name,
@@ -83,6 +83,7 @@ class RoleService:
     @staticmethod
     async def update_role(role_id: str, role_update: RoleCreateUpdate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {k: v for k, v in role_update.model_dump(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = datetime_jpn
             update_data["updated_by"] = current_user
@@ -100,6 +101,7 @@ class RoleService:
     @staticmethod
     async def delete_role(role_id: str, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {
                 "deleted_at": datetime_jpn,
                 "deleted_by": current_user

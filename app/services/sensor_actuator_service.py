@@ -5,6 +5,7 @@ import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
+from pymongo import DESCENDING
 from pytz import timezone
 
 from app.models.sensor_actuator import SensorData
@@ -15,7 +16,6 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class SensorActuatorService:
@@ -23,6 +23,7 @@ class SensorActuatorService:
     async def create_sensor_data(sensor_data: SensorActuatorCreate, token: TokenDataDevice):
         try:
             logger.info(sensor_data)
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             new_sensor_data: SensorData = SensorData(
                 device_id=token.device_id,
                 data=sensor_data.data,
@@ -65,6 +66,21 @@ class SensorActuatorService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
+    async def get_last_sensor_data(device_code: str):
+        try:
+            collection_name = "sensor_data_" + device_code
+            sensor_data = await db[collection_name].find_one(sort=[("inserted_at", DESCENDING)])
+            logger.info(f"sensor_data: {sensor_data}")
+            logger.info(f"type data: {type(sensor_data['data'])}")
+            if sensor_data:
+                return SensorActuatorResponse(**sensor_data,device_code=device_code)
+            raise HTTPException(status_code=404, detail="Sensor data not found")
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
     async def get_all_sensor_datas(device_code: str):
         try:
             sensor_datas = []
@@ -84,6 +100,7 @@ class SensorActuatorService:
     @staticmethod
     async def update_sensor_data(sensor_data_id: str, sensor_data: SensorActuatorCreate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {k: v for k, v in sensor_data.model_dump(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = datetime_jpn
             update_data["updated_by"] = current_user
@@ -103,6 +120,7 @@ class SensorActuatorService:
     @staticmethod
     async def delete_sensor_data(sensor_data_id: str, device_code: str, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {
                 "deleted_at": datetime_jpn,
                 "deleted_by": current_user

@@ -106,60 +106,127 @@ async def seed():
         print(f"An error has occurred: {e}")
         raise e
 
-    async def seed_type_protocol():
-        try:
-            client = AsyncIOMotorClient(
-                f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASS')}@{os.getenv('MONGO_HOST')}:{os.getenv('MONGO_PORT')}/{os.getenv('MONGO_DB')}?authSource=admin"
-            )
-            database = client[os.getenv('MONGO_DB')]
-            print(f"Database connection established")
 
-            types = [
-                {
-                    "name": "sensor",
-                    "description": "For sensor device",
-                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                    "inserted_by": "seeder"
-                },
-                {
-                    "name": "actuator",
-                    "description": "For actuator device",
-                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                    "inserted_by": "seeder"
-                }
-            ]
+async def seed_graph():
+    try:
+        # Connect to the database
+        client = AsyncIOMotorClient(
+            f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASS')}@{os.getenv('MONGO_HOST')}:{os.getenv('MONGO_PORT')}/{os.getenv('MONGO_DB')}?authSource=admin"
+        )
+        database = client[os.getenv('MONGO_DB')]
+        print(f"Database connection established")
 
-            protocols = [
-                {
-                    "name": "MQTT",
-                    "description": "For MQTT protocol",
-                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                    "inserted_by": "seeder"
-                },
-                {
-                    "name": "HTTP",
-                    "description": "For HTTP protocol",
-                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                    "inserted_by": "seeder"
-                },
-                {
-                    "name": "KAFKA",
-                    "description": "For KAFKA protocol",
-                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                    "inserted_by": "seeder"
-                },
-                {
-                    "name": "RABBITMQ",
-                    "description": "For RABBITMQ protocol",
-                    "inserted_at": datetime.now(tz=timezone("Asia/Tokyo")).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                    "inserted_by": "seeder"
-                }
-            ]
-            await database.types.insert_many(types)
-            await database.protocols.insert_many(protocols)
-        except Exception as e:
-            print(f"An error has occurred: {e}")
+        # Initial users data
+        widgets = [
+            {
+                "name": "Metric",
+                "description": "Display the metric",
+                "category": "metrics",
+                "icon": "bi bi-hash",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Thermometer",
+                "description": "Display the thermometer",
+                "category": "metrics",
+                "icon": "bi bi-thermometer-half",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Gauge",
+                "description": "Display the gauge",
+                "category": "metrics",
+                "icon": "bi bi-speedometer",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Indicator",
+                "description": "Display the indicator",
+                "category": "metrics",
+                "icon": "bi bi-app-indicator",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Tank",
+                "description": "Display the tank",
+                "category": "metrics",
+                "icon": "bi bi-droplet",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Battery",
+                "description": "Display the battery",
+                "category": "metrics",
+                "icon": "bi bi-battery-full",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Line chart",
+                "description": "Display the for timeseries",
+                "category": "charts",
+                "icon": "bi bi-graph-up",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Bar chart",
+                "description": "Compare the data",
+                "category": "charts",
+                "icon": "bi bi-bar-chart-line",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+            {
+                "name": "Pie chart",
+                "description": "Display all of data",
+                "category": "charts",
+                "icon": "bi bi-pie-chart-fill",
+                "active": True,
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "inserted_by": "seeder",
+                "updated_at": None,
+                "updated_by": None,
+            },
+        ]
+
+        # Insert users into the database
+        await database.widgets.insert_many(widgets)
+
+        print("Initial data has been seeded.")
+    except Exception as e:
+        print(f"An error has occurred: {e}")
+        raise e
 
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    asyncio.run(seed_graph())

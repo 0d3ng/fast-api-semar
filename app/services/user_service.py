@@ -28,7 +28,6 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-datetime_jpn = datetime.now(tz=pytz.UTC)
 
 
 class UserService:
@@ -62,6 +61,7 @@ class UserService:
     @staticmethod
     async def create_user(user: UserCreate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             hashed_password = pwd_context.hash(user.password)
             logger.info(user)
             new_user: User = User(
@@ -157,6 +157,7 @@ class UserService:
     @staticmethod
     async def update_user(user_id: str, user_update: UserUpdate, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {k: v for k, v in user_update.model_dump(exclude_unset=True).items() if v is not None}
             logger.info(update_data)
             if "password" in update_data:
@@ -187,6 +188,7 @@ class UserService:
     @staticmethod
     async def delete_user(user_id: str, current_user: str):
         try:
+            datetime_jpn = datetime.now(tz=pytz.UTC)
             update_data = {
                 "deleted_at": datetime_jpn,
                 "deleted_by": current_user

@@ -31,8 +31,16 @@ def extract_values(data, parent_key=''):
             values.extend(extract_values(value, full_key))
     else:
         values.append((parent_key, data))
-
     return values
+
+
+def extract_sensors(data, parent_key=''):
+    values = extract_values(data, parent_key)
+    data_dict = {key: value for key, value in values}
+    # print(f"data dict: {data_dict} type: {type(data_dict)}")
+    return data_dict
+    # json_result = json.dumps(data_dict)
+    # return json_result
 
 
 # Contoh data JSON
@@ -63,8 +71,6 @@ data = {
 }
 
 # Ekstrak semua nilai
-result = extract_values(data)
-
-# Cetak hasil
-for key, value in result:
-    print(f"{key}: {value}")
+# print(data)
+# result = extract_sensors(data)
+# print(result)

@@ -7,6 +7,7 @@ from starlette import status
 from app.middlewares.auth import verify_token
 from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorActuatorCreate
 from app.services.sensor_actuator_service import SensorActuatorService
+from app.utils.json_tools import extract_sensors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -26,12 +27,25 @@ async def create_sensor(sensor_data: SensorActuatorCreate, token: str = Depends(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/sensors/{sensor_data_id}/{device_code}", response_model=SensorActuatorResponse)
+@router.get("/sensors/{device_code}/sensor/{sensor_data_id}", response_model=SensorActuatorResponse)
 async def read_sensor(sensor_data_id: str, device_code: str, token: str = Depends(oauth2_scheme)):
     try:
-
+        logger.info(f"get sensor data by id: {sensor_data_id}")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await SensorActuatorService.get_sensor_data(sensor_data_id, device_code)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/sensors/{device_code}/latest", response_model=SensorActuatorResponse)
+async def read_last_sensor(device_code: str, token: str = Depends(oauth2_scheme)):
+    try:
+        logger.info(f"get last sensor data from {device_code}")
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        response = await SensorActuatorService.get_last_sensor_data(device_code)
+        data = extract_sensors(response.data)
+        response.data = data
+        return response
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 

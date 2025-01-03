@@ -12,6 +12,7 @@ from app.models.sensor_actuator import SensorData
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate, SensorActuatorResponse
 from app.schemas.token_schema import TokenDataDevice
 from app.utils.db import db
+from app.utils.json_tools import extract_sensors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -41,9 +42,9 @@ class SensorActuatorService:
                 _id=new_sensor_data_id,
                 device_id=token.device_id,
                 device_code=token.device_code,
-                data=sensor_data.data,
-                timestamp=sensor_data.timestamp,
-                inserted_at=datetime_jpn,
+                data=extract_sensors(sensor_data.data),
+                timestamp=sensor_data.timestamp.isoformat(),
+                inserted_at=datetime_jpn.isoformat(),
                 inserted_by=token.user_id
             )
         except Exception as e:
@@ -73,7 +74,11 @@ class SensorActuatorService:
             logger.info(f"sensor_data: {sensor_data}")
             logger.info(f"type data: {type(sensor_data['data'])}")
             if sensor_data:
-                return SensorActuatorResponse(**sensor_data,device_code=device_code)
+                new_response: SensorActuatorResponse = SensorActuatorResponse(**sensor_data, device_code=device_code)
+                data = extract_sensors(new_response.data)
+                new_response.data = data
+                logger.info(new_response)
+                return new_response
             raise HTTPException(status_code=404, detail="Sensor data not found")
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))

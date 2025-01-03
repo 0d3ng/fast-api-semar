@@ -43,8 +43,6 @@ async def read_last_sensor(device_code: str, token: str = Depends(oauth2_scheme)
         logger.info(f"get last sensor data from {device_code}")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
         response = await SensorActuatorService.get_last_sensor_data(device_code)
-        data = extract_sensors(response.data)
-        response.data = data
         return response
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

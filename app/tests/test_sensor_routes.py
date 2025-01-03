@@ -32,7 +32,7 @@ class MyTestCase(unittest.TestCase):
 
     def generate_sensor_data(self):
         return {
-            "timestamp": datetime.datetime.now(tz=pytz.UTC).strftime("%Y-%m-%d %H:%M:%S"),  # Timestamp sekarang
+            "timestamp": datetime.datetime.now(tz=pytz.UTC).isoformat(),  # Timestamp sekarang
             "data": {
                 "temperature": self.generate_random(20, 30),  # Suhu (20°C - 30°C)
                 "humidity": self.generate_random(30, 60),  # Kelembapan (%)

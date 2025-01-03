@@ -147,6 +147,7 @@ class DeviceService:
             })
             async for device in cursor:
                 logger.info(f"{device} {device["_id"]}")
+
                 project_response = DeviceResponse(**device)
                 devices.append(project_response)
                 logger.info("")

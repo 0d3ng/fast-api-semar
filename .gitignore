@@ -1,3 +1,4 @@
 .idea
-app.log
+app.*
 *.pem
+app/../app.log

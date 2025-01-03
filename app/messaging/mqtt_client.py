@@ -1,6 +1,7 @@
 # mqtt_client.py
 import asyncio
 import json
+import uuid
 from datetime import datetime
 
 import paho.mqtt.client as mqtt
@@ -13,7 +14,6 @@ from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD, \
     MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_SECRET
 from app.utils.encryption_tools import decrypt_cha_data
-from app.utils.json_tools import extract_sensors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -90,11 +90,8 @@ def on_message(client, userdata, msg):
 async def process_sensor_data(client, data: SensorActuatorCreate, token: TokenDataDevice):
     try:
         res = await SensorActuatorService.create_sensor_data(data, token)
-        logger.info(f"res: {res} {type(res)}")
         res.id = str(res.id)
-        res.data = extract_sensors(res.data)
-        res.timestamp = res.timestamp.isoformat()
-        res.inserted_at = res.inserted_at.isoformat()
+        logger.info(f"res: {res} {type(res)}")
         payload = vars(res)
         logger.info(f"payload: {payload}")
         client.publish(topic=(MQTT_TOPIC_RESPONSE + token.device_code), payload=json.dumps(payload), qos=1)

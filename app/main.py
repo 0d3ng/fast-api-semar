@@ -15,6 +15,7 @@ import signal
 import fastapi
 import uvicorn
 from fastapi import FastAPI, APIRouter
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
 from app.messaging.mqtt_client import start_mqtt_client, mqtt_cli, running
@@ -25,6 +26,19 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 route_unsecure = APIRouter(prefix="/api/v1", tags=["Unsecure"])
 

@@ -228,5 +228,122 @@ async def seed_graph():
         raise e
 
 
+async def seed_servers():
+    try:
+        # Connect to the database
+        client = AsyncIOMotorClient(
+            f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASS')}@{os.getenv('MONGO_HOST')}:{os.getenv('MONGO_PORT')}/{os.getenv('MONGO_DB')}?authSource=admin"
+        )
+        database = client[os.getenv('MONGO_DB')]
+        print(f"Database connection established")
+
+        # Initial users data
+        servers = [
+            {
+                "server_name": "MyMQTTServer",
+                "environment": "development",
+                "protocol": "mqtt",
+                "host": "127.0.0.1",
+                "port": 1884,
+                "parameters": {
+                    "username": "uwais",
+                    "password": "uwais",
+                    "topics": [
+                        {"publish": "data/sensor/",
+                         "subscribe": "/data/response/",
+                         "subscribe_data": "/data/device/sub",
+                         "unsubscribe_data": "/data/device/unsub"}
+                    ],
+                    "keep_alive": 60,
+                    "qos": 1
+                },
+                "inserted_by": "seeder",
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "updated_by": None,
+                "updated_at": None,
+                "deleted_by": None,
+                "deleted_at": None
+            },
+            {
+                "server_name": "MyHTTPServer",
+                "environment": "development",
+                "protocol": "http",
+                "host": "127.0.0.1",
+                "port": 8001,
+                "parameters": {
+                    "routes": [
+                        {
+                            "path": "/api/v1/resource",
+                            "method": "GET",
+                            "secured": True
+                        },
+                        {
+                            "path": "/api/v1/sensors",
+                            "method": "POST",
+                            "secured": True
+                        }
+                    ],
+                    "timeout": 30
+                },
+                "inserted_by": "seeder",
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "updated_by": None,
+                "updated_at": None,
+                "deleted_by": None,
+                "deleted_at": None
+            },
+            {
+                "server_name": "MyKafkaServer",
+                "environment": "production",
+                "protocol": "kafka",
+                "host": "kafka.example.com",
+                "port": 9092,
+                "parameters": {
+                    "bootstrap_servers": [
+                        "kafka1.example.com:9092",
+                        "kafka2.example.com:9092"
+                    ],
+                    "topics": ["kafka_topic1", "kafka_topic2"],
+                    "client_id": "kafka_client",
+                    "group_id": "kafka_group"
+                },
+                "inserted_by": "seeder",
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "updated_by": None,
+                "updated_at": None,
+                "deleted_by": None,
+                "deleted_at": None
+            },
+            {
+                "server_name": "MyRabbitMQServer",
+                "environment": "production",
+                "protocol": "rabbitmq",
+                "host": "rabbitmq.example.com",
+                "port": 5672,
+                "parameters": {
+                    "username": "rabbit_user",
+                    "password": "rabbit_password",
+                    "queues": ["queue1", "queue2"],
+                    "exchange": "my_exchange",
+                    "virtual_host": "/"
+                },
+                "inserted_by": "seeder",
+                "inserted_at": datetime.now(tz=pytz.UTC),
+                "updated_by": None,
+                "updated_at": None,
+                "deleted_by": None,
+                "deleted_at": None
+            }
+        ]
+
+        # Insert users into the database
+        await database.servers.insert_many(servers)
+
+        print("Initial data has been seeded.")
+    except Exception as e:
+        print(f"An error has occurred: {e}")
+        raise e
+
+
 if __name__ == "__main__":
-    asyncio.run(seed_graph())
+    asyncio.run(seed_servers())

@@ -1,7 +1,6 @@
 # mqtt_client.py
 import asyncio
 import json
-import uuid
 from datetime import datetime
 
 import paho.mqtt.client as mqtt

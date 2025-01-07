@@ -25,6 +25,7 @@ class ServerService:
         try:
             server = await db.servers.find_one(
                 {"protocol": {"$eq": protocol}, "environment": {"$eq": environment}})
+            logger.info(f"server: {server}")
             if server:
                 return ServerResponse(**server)
             raise HTTPException(status_code=404, detail="Server configuration not found")

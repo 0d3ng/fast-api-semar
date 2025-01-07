@@ -24,7 +24,7 @@ class ServerResponse(BaseModel):
     host: str
     port: int
     parameters: dict
-    inserted_by: str
+    inserted_by: Optional[str] = None
     inserted_at: Optional[str] = None
     updated_by: Optional[str] = None
     updated_at: Optional[str] = None

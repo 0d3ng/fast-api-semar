@@ -5,15 +5,6 @@ from dotenv import load_dotenv
 # Memuat konfigurasi dari file .env
 load_dotenv()
 
-MQTT_BROKER = os.getenv("MQTT_BROKER")
-MQTT_PORT = int(os.getenv("MQTT_PORT"))
-MQTT_TOPIC = os.getenv("MQTT_TOPIC")
-MQTT_TOPIC_RESPONSE = os.getenv("MQTT_TOPIC_RESPONSE")
-MQTT_TOPIC_DEVICE_SUB = os.getenv("MQTT_TOPIC_DEVICE_SUB")
-MQTT_TOPIC_DEVICE_UNSUB = os.getenv("MQTT_TOPIC_DEVICE_UNSUB")
-MQTT_USERNAME = os.getenv("MQTT_USERNAME")
-MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
-
 MONGO_DB = os.getenv("MONGO_DB")
 MONGO_HOST = os.getenv("MONGO_HOST")
 MONGO_PORT = int(os.getenv("MONGO_PORT"))

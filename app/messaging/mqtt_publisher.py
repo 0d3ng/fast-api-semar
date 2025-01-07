@@ -10,17 +10,17 @@
 #   """
 import paho.mqtt.client as mqtt
 
-from app.utils.config import MQTT_USERNAME, MQTT_PASSWORD, MQTT_BROKER, MQTT_PORT
+from app.schemas.server_schema import ServerResponse
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-def publish_message(topic, payload, qos=1):
+def publish_message(topic, payload, server: ServerResponse, qos=1):
     client = mqtt.Client()
     try:
-        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
-        client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.username_pw_set(server.parameters['username'], server.parameters['password'])
+        client.connect(server.host, server.port, server.parameters['keep_alive'])
         logger.info(f"publish data: {payload} with topic: {topic}")
         client.publish(topic, payload, qos=qos)
     except Exception as e:

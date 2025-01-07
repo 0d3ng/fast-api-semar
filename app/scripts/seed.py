@@ -240,7 +240,7 @@ async def seed_servers():
         # Initial users data
         servers = [
             {
-                "server_name": "MyMQTTServer",
+                "name": "MyMQTTServer",
                 "environment": "development",
                 "protocol": "mqtt",
                 "host": "127.0.0.1",
@@ -248,12 +248,13 @@ async def seed_servers():
                 "parameters": {
                     "username": "uwais",
                     "password": "uwais",
-                    "topics": [
-                        {"publish": "data/sensor/",
-                         "subscribe": "/data/response/",
-                         "subscribe_data": "/data/device/sub",
-                         "unsubscribe_data": "/data/device/unsub"}
-                    ],
+                    "topics":
+                        {
+                            "publish": "data/response/",
+                            "subscribe": "data/sensor/",
+                            "subscribe_device": "data/device/sub/",
+                            "unsubscribe_device": "data/device/unsub/"
+                        },
                     "keep_alive": 60,
                     "qos": 1
                 },
@@ -265,7 +266,7 @@ async def seed_servers():
                 "deleted_at": None
             },
             {
-                "server_name": "MyHTTPServer",
+                "name": "MyHTTPServer",
                 "environment": "development",
                 "protocol": "http",
                 "host": "127.0.0.1",
@@ -293,7 +294,7 @@ async def seed_servers():
                 "deleted_at": None
             },
             {
-                "server_name": "MyKafkaServer",
+                "name": "MyKafkaServer",
                 "environment": "production",
                 "protocol": "kafka",
                 "host": "kafka.example.com",
@@ -315,7 +316,7 @@ async def seed_servers():
                 "deleted_at": None
             },
             {
-                "server_name": "MyRabbitMQServer",
+                "name": "MyRabbitMQServer",
                 "environment": "production",
                 "protocol": "rabbitmq",
                 "host": "rabbitmq.example.com",

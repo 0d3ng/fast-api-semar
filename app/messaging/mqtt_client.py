@@ -10,8 +10,9 @@ from app.schemas.sensor_actuator_schema import SensorActuatorCreate
 from app.schemas.token_schema import TokenDataDevice
 from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
+from app.services.server_service import ServerService
 from app.utils.config import MQTT_BROKER, MQTT_PORT, MQTT_TOPIC, MQTT_TOPIC_RESPONSE, MQTT_USERNAME, MQTT_PASSWORD, \
-    MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_SECRET
+    MQTT_TOPIC_DEVICE_UNSUB, MQTT_TOPIC_DEVICE_SUB, ACCESS_TOKEN_SECRET, ENV
 from app.utils.encryption_tools import decrypt_cha_data
 from app.utils.logger import get_logger
 
@@ -27,6 +28,17 @@ async def on_connect_async(client, userdata, flags, rc):
     try:
         logger.info(f"Connected with result code {rc}")
         devices = await DeviceService.get_active_all_devices("mqtt")
+        if not devices:
+            logger.error(".......................................")
+            logger.error(f"Not any device, please create first...")
+            logger.error(".......................................")
+            running = False
+        server = await ServerService.get_server_config(protocol="mqtt", environment=ENV)
+        if not server:
+            logger.error(".......................................")
+            logger.error(f"Not any server configuration, please create first...")
+            logger.error(".......................................")
+            running = False
         for device in devices:
             topic_devices.append((MQTT_TOPIC + device.code))
             logger.info(f"device: {device}")

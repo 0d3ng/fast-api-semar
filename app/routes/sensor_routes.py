@@ -7,7 +7,6 @@ from starlette import status
 from app.middlewares.auth import verify_token
 from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorActuatorCreate
 from app.services.sensor_actuator_service import SensorActuatorService
-from app.utils.json_tools import extract_sensors
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)

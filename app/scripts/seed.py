@@ -348,4 +348,5 @@ async def seed_servers():
 
 
 if __name__ == "__main__":
+    # asyncio.run(seed())
     asyncio.run(seed_servers())

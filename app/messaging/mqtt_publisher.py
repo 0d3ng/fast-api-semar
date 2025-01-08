@@ -20,7 +20,7 @@ def publish_message(topic, payload, server: ServerResponse, qos=1):
     client = mqtt.Client()
     try:
         client.username_pw_set(server.parameters['username'], server.parameters['password'])
-        client.connect(server.host, server.port, server.parameters['keep_alive'])
+        client.connect(server.host, server.ports['mqtt'], server.parameters['keep_alive'])
         logger.info(f"publish data: {payload} with topic: {topic}")
         client.publish(topic, payload, qos=qos)
     except Exception as e:

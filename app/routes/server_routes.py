@@ -15,6 +15,7 @@ from starlette import status
 
 from app.middlewares.auth import verify_token
 from app.schemas.sensor_actuator_schema import SensorActuatorResponse
+from app.schemas.server_schema import ServerResponse
 from app.services.server_service import ServerService
 from app.utils.logger import get_logger
 
@@ -27,7 +28,7 @@ credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                       headers={"WWW-Authenticate": "Bearer"})
 
 
-@router.get("/servers/{protocol}", response_model=SensorActuatorResponse)
+@router.get("/servers/{protocol}", response_model=ServerResponse)
 async def get_server(protocol: str, environment: str = Query(...), token: str = Depends(oauth2_scheme)):
     try:
         logger.info(f"get server: {protocol} {environment}")

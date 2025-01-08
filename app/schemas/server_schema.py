@@ -22,7 +22,7 @@ class ServerResponse(BaseModel):
     environment: str
     protocol: str
     host: str
-    port: int
+    ports: dict
     parameters: dict
     inserted_by: Optional[str] = None
     inserted_at: Optional[str] = None

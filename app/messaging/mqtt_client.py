@@ -135,8 +135,8 @@ async def start_mqtt_client():
         mqtt_cli.username_pw_set(server.parameters['username'], server.parameters['password'])
         mqtt_cli.on_connect = on_connect
         mqtt_cli.on_message = on_message
-        logger.info(f"connecting MQTT broker: {server.host} port: {server.port}")
-        mqtt_cli.connect(server.host, server.port, server.parameters['keep_alive'])
+        logger.info(f"connecting MQTT broker: {server.host} port: {server.ports['mqtt']}")
+        mqtt_cli.connect(server.host, server.ports['mqtt'], server.parameters['keep_alive'])
         while running:
             mqtt_cli.loop(timeout=1)
             await asyncio.sleep(1)

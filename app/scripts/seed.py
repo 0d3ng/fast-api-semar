@@ -244,7 +244,10 @@ async def seed_servers():
                 "environment": "development",
                 "protocol": "mqtt",
                 "host": "127.0.0.1",
-                "port": 1884,
+                "ports": {
+                    "mqtt": 1884,
+                    "ws": 9001,
+                },
                 "parameters": {
                     "username": "uwais",
                     "password": "uwais",
@@ -270,20 +273,12 @@ async def seed_servers():
                 "environment": "development",
                 "protocol": "http",
                 "host": "127.0.0.1",
-                "port": 8001,
+                "ports": {
+                    "http": 8001,
+                    "https": 8002,
+                },
                 "parameters": {
-                    "routes": [
-                        {
-                            "path": "/api/v1/resource",
-                            "method": "GET",
-                            "secured": True
-                        },
-                        {
-                            "path": "/api/v1/sensors",
-                            "method": "POST",
-                            "secured": True
-                        }
-                    ],
+                    "path": "/api/v1/",
                     "timeout": 30
                 },
                 "inserted_by": "seeder",
@@ -298,7 +293,10 @@ async def seed_servers():
                 "environment": "production",
                 "protocol": "kafka",
                 "host": "kafka.example.com",
-                "port": 9092,
+                "ports": {
+                    "http": 9002,
+                    "ssl": 9003,
+                },
                 "parameters": {
                     "bootstrap_servers": [
                         "kafka1.example.com:9092",
@@ -320,7 +318,10 @@ async def seed_servers():
                 "environment": "production",
                 "protocol": "rabbitmq",
                 "host": "rabbitmq.example.com",
-                "port": 5672,
+                "ports": {
+                    "http": 5672,
+                    "ssl": 5673,
+                },
                 "parameters": {
                     "username": "rabbit_user",
                     "password": "rabbit_password",

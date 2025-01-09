@@ -46,8 +46,9 @@ class MyTestCase(unittest.TestCase):
         }
 
     def test_insert(self):
-        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3JfaWQiOiI2NzZjOTJkOGRkODhmNzk0ZmViZmE0ZDMiLCJ1c2VybmFtZSI6ImFkbWluIiwiZGV2X2lkIjoiNjc3NGQxMDkxMWVjY2ExYmU4MzU0NGQyIiwiZGV2X2NvZGUiOiJzYmJ1NXciLCJleHAiOjE3MzczOTE3NTl9.VwYdlRzZ2Y4g5vSD5En9zeEn9CppQRlJAOHfnMyJCHo"
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3JfaWQiOiI2NzdlMTU1NTlhYTU1NzFmM2NmYmM0MWIiLCJ1c2VybmFtZSI6ImFkbWluIiwiZGV2X2lkIjoiNjc3ZTg1YzUzNGRiOWRiYmE2ZGY0OGVhIiwiZGV2X2NvZGUiOiJkMmU4ZGsiLCJleHAiOjE3MzgyODAxNTB9.gXPwaa5yJ4h61xAkzNtQiQrwUGFsP-bDEaINmqR2D8k"
         data = self.generate_sensor_data()
+        print(data)
         headers = {"Authorization": f"Bearer {token}"}
         response = client.post(f"/api/v1/sensors", json=data, headers=headers)
         print(f"response: {response.text} code: {response.status_code}")

@@ -36,10 +36,9 @@ async def on_connect_async(client, userdata, flags, rc):
         logger.info(f"Connected with result code {rc}")
         devices = await DeviceService.get_active_all_devices("mqtt")
         if not devices:
-            logger.error(".......................................")
-            logger.error(f"Not any device, please create first...")
-            logger.error(".......................................")
-            running = False
+            logger.warning(".......................................")
+            logger.warning(f"Not any device, please create first...")
+            logger.warning(".......................................")
 
         topic_pub = server.parameters['topics']['publish']
         topic_sub = server.parameters['topics']['subscribe']

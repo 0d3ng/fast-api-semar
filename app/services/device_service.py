@@ -55,63 +55,62 @@ class DeviceService:
             new_device_id = new_device_inserted.inserted_id
             logger.info(f"{new_device_id} {type(new_device_id)}")
             if new_device_id:
-                server = await ServerService.get_server_config(new_device.protocol, environment="development")
-                if server:
-                    topic = server.parameters['topics']['subscribe_device']
-                    qos = server.parameters['qos']
-                    publish_message(topic=topic, payload=new_device.code, qos=qos, server=server)
-
-                    future = add_day_to_date(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
+                future = add_day_to_date(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
+                payload = {
+                    "usr_id": current_user.user_id,
+                    "dev_id": str(new_device_id),
+                    "dev_code": new_device.code,
+                    "exp": int(time.mktime(future.timetuple()))
+                }
+                if device.protocol == "mqtt":
+                    access_token = create_token_enc(payload=payload)
+                    server = await ServerService.get_server_config(new_device.protocol, environment="development")
+                    if server:
+                        topic = server.parameters['topics']['subscribe_device']
+                        qos = server.parameters['qos']
+                        publish_message(topic=topic, payload=new_device.code, qos=qos, server=server)
+                    else:
+                        logger.warning("Server configuration not found")
+                else:
                     payload = {
                         "usr_id": current_user.user_id,
+                        "username": current_user.username,
                         "dev_id": str(new_device_id),
-                        "dev_code": new_device.code,
-                        "exp": int(time.mktime(future.timetuple()))
+                        "dev_code": new_device.code
                     }
-                    if device.protocol == "mqtt":
-                        access_token = create_token_enc(payload=payload)
-                    else:
-                        payload = {
-                            "user_id": current_user.user_id,
-                            "username": current_user.username,
-                            "dev_id": str(new_device_id),
-                            "dev_code": new_device.code
-                        }
-                        access_token = create_access_token(data=payload)
-                    new_token: Token = Token(
-                        device_id=str(new_device_id),
-                        name=new_device.name,
-                        token=access_token,
-                        description=new_device.description,
-                        expires_at=future,
-                        inserted_at=datetime_jpn,
-                        inserted_by=current_user.user_id
-                    )
-                    logger.info(new_token)
-                    new_token_inserted = await db.tokens.insert_one(new_token.model_dump(by_alias=True))
-                    new_token_id = new_token_inserted.inserted_id
-                    if new_token_id:
-                        logger.info(f"{new_token_id} {type(new_token_id)} created successfully")
-                        return DeviceResponse(_id=new_device_id,
-                                              code=new_device.code,
-                                              name=device.name,
-                                              description=device.description,
-                                              type=device.type,
-                                              protocol=device.protocol,
-                                              project_id=device.project_id,
-                                              active=device.active,
-                                              inserted_at=datetime_jpn,
-                                              inserted_by=current_user.user_id)
-                    else:
-                        raise HTTPException(status_code=500, detail="Create token fail")
-                raise HTTPException(status_code=404, detail="Server configuration not found")
+                    access_token = create_access_token(data=payload)
+                new_token: Token = Token(
+                    device_id=str(new_device_id),
+                    name=new_device.name,
+                    token=access_token,
+                    description=new_device.description,
+                    expires_at=future,
+                    inserted_at=datetime_jpn,
+                    inserted_by=current_user.user_id
+                )
+                logger.info(new_token)
+                new_token_inserted = await db.tokens.insert_one(new_token.model_dump(by_alias=True))
+                new_token_id = new_token_inserted.inserted_id
+                if new_token_id:
+                    logger.info(f"{new_token_id} {type(new_token_id)} created successfully")
+                    return DeviceResponse(_id=new_device_id,
+                                          code=new_device.code,
+                                          name=device.name,
+                                          description=device.description,
+                                          type=device.type,
+                                          protocol=device.protocol,
+                                          project_id=device.project_id,
+                                          active=device.active,
+                                          inserted_at=datetime_jpn,
+                                          inserted_by=current_user.user_id)
+                else:
+                    raise HTTPException(status_code=500, detail="Create token fail")
             raise HTTPException(status_code=500, detail="Insert device fail")
         except Exception as e:
             logger.error(f"Failed to create device: {e}")
             tb_str = ''.join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
-
 
     @staticmethod
     async def get_device(device_id: str):
@@ -124,7 +123,6 @@ class DeviceService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
-
 
     @staticmethod
     async def get_all_devices(user_id: str = None):
@@ -146,7 +144,6 @@ class DeviceService:
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
-
     @staticmethod
     async def get_active_all_devices(protocol):
         try:
@@ -167,7 +164,6 @@ class DeviceService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
-
 
     @staticmethod
     async def update_device(device_id: str, device_update: DeviceCreateUpdate, current_user: str):

@@ -1,11 +1,12 @@
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.params import Query
 from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
 from app.middlewares.auth import verify_token
-from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorActuatorCreate
+from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorActuatorCreate, DataSource
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.logger import get_logger
 
@@ -50,9 +51,19 @@ async def read_last_sensor(device_code: str, token: str = Depends(oauth2_scheme)
 @router.get("/sensors/{device_code}", response_model=List[SensorActuatorResponse])
 async def read_sensors(device_code: str, token: str = Depends(oauth2_scheme)):
     try:
-        logger.info("get roles")
+        logger.info("get sensor data by code")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await SensorActuatorService.get_all_sensor_datas(device_code)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/sensors/", response_model=List[DataSource])
+async def read_data_source(device_code: str = Query(...), token: str = Depends(oauth2_scheme)):
+    try:
+        logger.info("get datasource")
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await SensorActuatorService.get_data_sources(device_code)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

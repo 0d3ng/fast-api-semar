@@ -35,3 +35,18 @@ class SensorActuatorResponse(BaseModel):
         return v
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class DataSource(BaseModel):
+    id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
+    data: dict
+    timestamp: Optional[str] = None
+    inserted_at: Optional[str] = None
+
+    @field_validator('inserted_at', 'timestamp', mode='before')
+    def convert_datetime(cls, v):
+        if isinstance(v, datetime):
+            return v.isoformat()
+        return v
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)

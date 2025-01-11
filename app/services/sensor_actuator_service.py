@@ -9,7 +9,7 @@ from pymongo import DESCENDING
 from pytz import timezone
 
 from app.models.sensor_actuator import SensorData
-from app.schemas.sensor_actuator_schema import SensorActuatorCreate, SensorActuatorResponse
+from app.schemas.sensor_actuator_schema import SensorActuatorCreate, SensorActuatorResponse, DataSource
 from app.schemas.token_schema import TokenDataDevice
 from app.utils.db import db
 from app.utils.json_tools import extract_sensors
@@ -97,6 +97,28 @@ class SensorActuatorService:
                 sensor_datas.append(sensor_data_response)
                 logger.info("")
             return sensor_datas
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def get_data_sources(device_code: str):
+        try:
+            data_sources = []
+            collection_name = "sensor_data_" + device_code
+            cursor = db[collection_name].find({})
+            async for sensor_data in cursor:
+                data_source: DataSource = DataSource(
+                    id=sensor_data["_id"],
+                    data=extract_sensors(sensor_data["data"]),
+                    timestamp=sensor_data["timestamp"],
+                    inserted_at=sensor_data["inserted_at"],
+                )
+                logger.info(f"{data_source} {sensor_data["_id"]}")
+                data_sources.append(data_source)
+                logger.info("")
+            return data_sources
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")

@@ -21,10 +21,11 @@ client = TestClient(app)
 
 
 class MyTestCase(unittest.TestCase):
+    token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3JfaWQiOiI2NzZjOTJkOGRkODhmNzk0ZmViZmE0ZDMiLCJ1c2VybmFtZSI6ImFkbWluIiwiZGV2X2lkIjoiNjc3NGQxMDkxMWVjY2ExYmU4MzU0NGQyIiwiZGV2X2NvZGUiOiJzYmJ1NXciLCJleHAiOjE3MzczOTE3NTl9.VwYdlRzZ2Y4g5vSD5En9zeEn9CppQRlJAOHfnMyJCHo"
+    device_code = "c5y4ub"
+    headers = {"Authorization": f"Bearer {token}"}
 
     # Fungsi untuk generate nilai acak dalam rentang tertentu
-
-    @staticmethod
     def generate_random(min_val, max_val, decimals=2):
         return round(random.uniform(min_val, max_val), decimals)
 
@@ -46,20 +47,20 @@ class MyTestCase(unittest.TestCase):
         }
 
     def test_insert(self):
-        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3JfaWQiOiI2NzdlMTU1NTlhYTU1NzFmM2NmYmM0MWIiLCJ1c2VybmFtZSI6ImFkbWluIiwiZGV2X2lkIjoiNjc3ZTg1YzUzNGRiOWRiYmE2ZGY0OGVhIiwiZGV2X2NvZGUiOiJkMmU4ZGsiLCJleHAiOjE3MzgyODAxNTB9.gXPwaa5yJ4h61xAkzNtQiQrwUGFsP-bDEaINmqR2D8k"
         data = self.generate_sensor_data()
         print(data)
-        headers = {"Authorization": f"Bearer {token}"}
+        headers = {"Authorization": f"Bearer {self.token}"}
         response = client.post(f"/api/v1/sensors", json=data, headers=headers)
         print(f"response: {response.text} code: {response.status_code}")
         assert response.status_code == 200
 
-    @staticmethod
-    def test_get_last():
-        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c3JfaWQiOiI2NzZjOTJkOGRkODhmNzk0ZmViZmE0ZDMiLCJ1c2VybmFtZSI6ImFkbWluIiwiZGV2X2lkIjoiNjc3NGQxMDkxMWVjY2ExYmU4MzU0NGQyIiwiZGV2X2NvZGUiOiJzYmJ1NXciLCJleHAiOjE3MzczOTE3NTl9.VwYdlRzZ2Y4g5vSD5En9zeEn9CppQRlJAOHfnMyJCHo"
-        device_code = "5f5sff"
-        headers = {"Authorization": f"Bearer {token}"}
-        response = client.get(f"/api/v1/sensors/{device_code}/latest", headers=headers)
+    def test_get_last(self):
+        response = client.get(f"/api/v1/sensors/{self.device_code}/latest", headers=self.headers)
+        print(f"response: {response.text} code: {response.status_code}")
+        assert response.status_code == 200
+
+    def test_get_data_sources(self):
+        response = client.get(f"/api/v1/sensors?device_code={self.device_code}", headers=self.headers)
         print(f"response: {response.text} code: {response.status_code}")
         assert response.status_code == 200
 

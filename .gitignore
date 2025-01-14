@@ -2,3 +2,4 @@
 app.*
 *.pem
 app/../app.log
+.env

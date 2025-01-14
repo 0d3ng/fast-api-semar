@@ -103,11 +103,25 @@ class SensorActuatorService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_data_sources(device_code: str):
+    async def get_data_sources(device_code: str, start: str = None, end: str = None):
         try:
+            utc_tz = pytz.timezone('UTC')
+            filter = {}
+            logger.info(f"Parameters: {device_code} {start} {end}")
+            if start and end:
+                start_date_tokyo = datetime.strptime(f"{start} 00:00:00", "%Y-%m-%d %H:%M:%S")
+                end_date_tokyo = datetime.strptime(f"{end} 23:59:59", "%Y-%m-%d %H:%M:%S")
+                start_date_utc = start_date_tokyo.astimezone(utc_tz)
+                end_date_utc = end_date_tokyo.astimezone(utc_tz)
+                filter = {
+                    "timestamp": {
+                        "$gte": start_date_utc,
+                        "$lt": end_date_utc
+                    }
+                }
             data_sources = []
             collection_name = "sensor_data_" + device_code
-            cursor = db[collection_name].find({})
+            cursor = db[collection_name].find(filter)
             async for sensor_data in cursor:
                 data_source: DataSource = DataSource(
                     id=sensor_data["_id"],
@@ -119,10 +133,12 @@ class SensorActuatorService:
                 data_sources.append(data_source)
                 logger.info("")
             return data_sources
+
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
+
 
     @staticmethod
     async def update_sensor_data(sensor_data_id: str, sensor_data: SensorActuatorCreate, current_user: str):
@@ -143,6 +159,7 @@ class SensorActuatorService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
+
 
     @staticmethod
     async def delete_sensor_data(sensor_data_id: str, device_code: str, current_user: str):

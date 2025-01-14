@@ -59,11 +59,12 @@ async def read_sensors(device_code: str, token: str = Depends(oauth2_scheme)):
 
 
 @router.get("/sensors/", response_model=List[DataSource])
-async def read_data_source(device_code: str = Query(...), token: str = Depends(oauth2_scheme)):
+async def read_data_source(device_code: str = Query(...), start: str = Query(...), end: str = Query(...),
+                           token: str = Depends(oauth2_scheme)):
     try:
         logger.info("get datasource")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
-        return await SensorActuatorService.get_data_sources(device_code)
+        return await SensorActuatorService.get_data_sources(device_code, start, end)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

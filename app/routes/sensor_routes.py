@@ -6,9 +6,11 @@ from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
 from app.middlewares.auth import verify_token
-from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorActuatorCreate, DataSource
+from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorActuatorCreate, DataSource, \
+    StatisticsDescriptive
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.logger import get_logger
+from app.utils.statistics import descriptive
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -65,6 +67,22 @@ async def read_data_source(device_code: str = Query(...), start: str = Query(...
         logger.info("get datasource")
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await SensorActuatorService.get_data_sources(device_code, start, end)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/sensors/{device_code}/statistics")
+async def read_statistics(device_code: str, start: str = Query(...), end: str = Query(...),
+                          token: str = Depends(oauth2_scheme)):
+    try:
+        logger.info("get statistics")
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+
+        sensors_data = await SensorActuatorService.get_data_sources(device_code, start, end)
+        logger.info(f"Number of records: {len(sensors_data)}")
+        json_desc = descriptive(sensors_data)
+        logger.info(f"Statistics desc: {json_desc}")
+        return json_desc
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

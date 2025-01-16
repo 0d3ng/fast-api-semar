@@ -50,3 +50,15 @@ class DataSource(BaseModel):
         return v
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class StatisticsDescriptive(BaseModel):
+    records: int
+    start_date: str
+    end_date: str
+    mean: Optional[float] = None
+    max: Optional[float] = None
+    min: Optional[float] = None
+    median: Optional[float] = None
+    std: Optional[float] = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)

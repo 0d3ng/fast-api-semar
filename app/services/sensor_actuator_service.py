@@ -6,7 +6,6 @@ from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
 from pymongo import DESCENDING
-from pytz import timezone
 
 from app.models.sensor_actuator import SensorData
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate, SensorActuatorResponse, DataSource

@@ -70,7 +70,7 @@ class TokenService:
             logger.info(f"device: {device} type: {type(device)}")
             return TokenResponse(_id=new_token_id,
                                  device_id=token.device_id,
-                                 device_name=device.name,
+                                 device_name=device.name_index,
                                  name=token.name,
                                  token=access_token,
                                  description=token.description,
@@ -92,7 +92,7 @@ class TokenService:
                 device = await DeviceService.get_device(token["device_id"])
                 if not device:
                     raise HTTPException(status_code=404, detail="Device not found")
-                return TokenResponse(**token, device_name=device.name)
+                return TokenResponse(**token, device_name=device.name_index)
             raise HTTPException(status_code=404, detail="Token not found")
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
@@ -112,7 +112,7 @@ class TokenService:
                 device = await DeviceService.get_device(device_id)
                 if not device:
                     raise HTTPException(status_code=404, detail="Device not found")
-                return TokenResponse(**token, device_name=device.name)
+                return TokenResponse(**token, device_name=device.name_index)
             raise HTTPException(status_code=404, detail="Token not found")
 
         except (KeyError, TypeError, Exception) as e:
@@ -134,7 +134,7 @@ class TokenService:
                 device = await DeviceService.get_device(token["device_id"])
                 if not device:
                     raise HTTPException(status_code=404, detail="Device not found")
-                token_response = TokenResponse(**token, device_name=device.name)
+                token_response = TokenResponse(**token, device_name=device.name_index)
                 tokens.append(token_response)
                 logger.info("")
             return tokens

@@ -24,23 +24,22 @@ from webdriver_manager.chrome import ChromeDriverManager
 # 10 minutes
 url = "https://www.jma.go.jp/bosai/amedas/#area_type=offices&area_code=330000&amdno=66408&format="
 
-
 # 1 hour
 # url = "https://www.jma.go.jp/bosai/amedas/#area_type=offices&area_code=330000&amdno=66408&format=table1h&lang=en&elems=43018"
 
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
+driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
 
 def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
     table_name = "table10min" if is10minutes else "table1h"
-    # print(f"{url}{table_name}&lang=en&elems=43018")
-    driver.get(f"{url}{table_name}&lang=en&elems=43018")
+    # print(f"{url}{table_name}&lang=en&elems=4301e")
+    driver.get(f"{url}{table_name}&lang=en&elems=4301e")
     driver.implicitly_wait(wait)
     # print(driver.page_source)
-
     try:
         WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.ID, "amd-table")))
         time.sleep(3)
@@ -64,6 +63,8 @@ def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
                         wind_speed = parts[4]
                         humidity = parts[5]
                         pressure = parts[6]
+                        sea_level_pressure = parts[7]
+                        horizontal_visibility = parts[8]
                     else:
                         date_time = f"{date_str} {parts[0]}"
                         temperature = parts[1]
@@ -71,6 +72,8 @@ def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
                         wind_speed = parts[3]
                         humidity = parts[4]
                         pressure = parts[5]
+                        sea_level_pressure = parts[6]
+                        horizontal_visibility = parts[7]
                     full_date_string = f'{current_year} {date_time}:00'
                     if "24:00" in full_date_string:
                         full_date_string = full_date_string.replace("24:00", "00:00")
@@ -83,7 +86,9 @@ def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
                         "wind_direction": wind_direction,
                         "wind_speed": wind_speed,
                         "humidity": humidity,
-                        "pressure": pressure
+                        "pressure": pressure,
+                        "sea_level_pressure": sea_level_pressure,
+                        "horizontal_visibility": horizontal_visibility
                     }
                     print(data)
                     amedas_data.append(data)
@@ -93,5 +98,69 @@ def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
     driver.quit()
 
 
+def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
+    table_name = "table10min" if is10minutes else "table1h"
+    # print(f"{url}{table_name}&lang=en&elems=4301e")
+    driver.get(f"{url}{table_name}&lang=en&elems=4301e")
+    driver.implicitly_wait(wait)
+    # print(driver.page_source)
+    try:
+        WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.ID, "amd-table")))
+        time.sleep(3)
+        table_div = driver.find_element(By.ID, "amd-table")
+        rows = table_div.find_elements(By.TAG_NAME, "tr")
+        date_pattern = re.compile(r'\d{2}/\d{2}')
+        date_str = None
+        current_year = datetime.now(timezone.utc).year
+        data = None
+        for row in rows:
+            if row.get_attribute('class') == "amd-table-tr-onthedot" or row.get_attribute(
+                    'class') == "amd-table-tr-notonthedot":
+                if row.text:
+                    # print(f"{row.text}")
+                    parts = row.text.split()
+                    if date_pattern.match(parts[0]):
+                        date_str = parts[0]
+                        date_time = date_str + ' ' + parts[1]
+                        temperature = parts[2]
+                        wind_direction = parts[3]
+                        wind_speed = parts[4]
+                        humidity = parts[5]
+                        pressure = parts[6]
+                        sea_level_pressure = parts[7]
+                        horizontal_visibility = parts[8]
+                    else:
+                        date_time = f"{date_str} {parts[0]}"
+                        temperature = parts[1]
+                        wind_direction = parts[2]
+                        wind_speed = parts[3]
+                        humidity = parts[4]
+                        pressure = parts[5]
+                        sea_level_pressure = parts[6]
+                        horizontal_visibility = parts[7]
+                    full_date_string = f'{current_year} {date_time}:00'
+                    if "24:00" in full_date_string:
+                        full_date_string = full_date_string.replace("24:00", "00:00")
+                        date_time_obj = datetime.strptime(full_date_string, '%Y %m/%d %H:%M:%S')
+                    else:
+                        date_time_obj = datetime.strptime(full_date_string, '%Y %m/%d %H:%M:%S')
+                    data = {
+                        "timestamp": date_time_obj,
+                        "temperature": temperature,
+                        "wind_direction": wind_direction,
+                        "wind_speed": wind_speed,
+                        "humidity": humidity,
+                        "pressure": pressure,
+                        "sea_level_pressure": sea_level_pressure,
+                        "horizontal_visibility": horizontal_visibility
+                    }
+                    print(data)
+                    break
+        return data
+    except TimeoutException:
+        print("TimeoutException")
+    driver.quit()
+
 if __name__ == "__main__":
     get_all_observation_data(is10minutes=True)
+    get_last_observation_data(is10minutes=True)

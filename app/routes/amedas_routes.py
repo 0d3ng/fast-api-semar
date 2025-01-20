@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
+from app.middlewares.auth import verify_token
 from app.schemas.amedas_schema import AmedasCreate, AmedasResponse
 from app.services.amedas_service import AmedasService
 from app.utils.logger import get_logger
@@ -41,6 +42,7 @@ async def create_amedas(data: List[AmedasCreate], token: str = Depends(oauth2_sc
 async def get_amedas_last(token: str = Depends(oauth2_scheme)):
     try:
         logger.info("get last amedas")
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
         return await AmedasService.get_sensor_data_latest()
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

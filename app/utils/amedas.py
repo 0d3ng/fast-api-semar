@@ -8,6 +8,7 @@
 #  File: amedas.py
 #  Description:
 #  """
+import asyncio
 import re
 import time
 from datetime import datetime, timezone
@@ -34,7 +35,7 @@ chrome_options.add_argument("--disable-dev-shm-usage")
 driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
 
-def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
+async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
     table_name = "table10min" if is10minutes else "table1h"
     # print(f"{url}{table_name}&lang=en&elems=4301e")
     driver.get(f"{url}{table_name}&lang=en&elems=4301e")
@@ -98,7 +99,7 @@ def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
     driver.quit()
 
 
-def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
+async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
     table_name = "table10min" if is10minutes else "table1h"
     # print(f"{url}{table_name}&lang=en&elems=4301e")
     driver.get(f"{url}{table_name}&lang=en&elems=4301e")
@@ -156,11 +157,22 @@ def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
                     }
                     print(data)
                     break
+        driver.quit()
         return data
-    except TimeoutException:
-        print("TimeoutException")
-    driver.quit()
+    except TimeoutException as e:
+        driver.quit()
+        raise Exception(e)
+
 
 if __name__ == "__main__":
-    get_all_observation_data(is10minutes=True)
-    get_last_observation_data(is10minutes=True)
+    async def main():
+        now = time.time()
+        # get_all_observation_data(is10minutes=True)
+        await get_last_observation_data(is10minutes=True)
+        dif = time.time() - now
+        hours, rem = divmod(dif, 3600)
+        minutes, rem = divmod(rem, 60)
+        seconds, ms = divmod(rem, 1)
+        ms = int(ms * 1000)
+        print(print(f"Selisih waktu: {int(hours):02}:{int(minutes):02}:{int(seconds):02}.{ms:03}"))
+    asyncio.run(main())

@@ -112,7 +112,7 @@ class TokenService:
                 device = await DeviceService.get_device(device_id)
                 if not device:
                     raise HTTPException(status_code=404, detail="Device not found")
-                return TokenResponse(**token, device_name=device.name_index)
+                return TokenResponse(**token, device_name=device.name)
             raise HTTPException(status_code=404, detail="Token not found")
 
         except (KeyError, TypeError, Exception) as e:

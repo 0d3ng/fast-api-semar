@@ -107,7 +107,7 @@ async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
     # print(driver.page_source)
     try:
         WebDriverWait(driver, 20).until(expected_conditions.presence_of_element_located((By.ID, "amd-table")))
-        time.sleep(3)
+        time.sleep(1)
         table_div = driver.find_element(By.ID, "amd-table")
         rows = table_div.find_elements(By.TAG_NAME, "tr")
         date_pattern = re.compile(r'\d{2}/\d{2}')

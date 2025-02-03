@@ -24,10 +24,11 @@ class SensorActuatorService:
         try:
             logger.info(sensor_data)
             datetime_jpn = datetime.now(tz=pytz.UTC)
+            timestamp_utc = sensor_data.timestamp.astimezone(pytz.UTC)
             new_sensor_data: SensorData = SensorData(
                 device_id=token.device_id,
                 data=sensor_data.data,
-                timestamp=sensor_data.timestamp,
+                timestamp=timestamp_utc,
                 inserted_at=datetime_jpn,
                 inserted_by=token.user_id
             )
@@ -138,7 +139,6 @@ class SensorActuatorService:
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
-
     @staticmethod
     async def update_sensor_data(sensor_data_id: str, sensor_data: SensorActuatorCreate, current_user: str):
         try:
@@ -158,7 +158,6 @@ class SensorActuatorService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
-
 
     @staticmethod
     async def delete_sensor_data(sensor_data_id: str, device_code: str, current_user: str):

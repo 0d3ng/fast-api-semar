@@ -25,17 +25,18 @@ from webdriver_manager.chrome import ChromeDriverManager
 # 10 minutes
 url = "https://www.jma.go.jp/bosai/amedas/#area_type=offices&area_code=330000&amdno=66408&format="
 
+
 # 1 hour
 # url = "https://www.jma.go.jp/bosai/amedas/#area_type=offices&area_code=330000&amdno=66408&format=table1h&lang=en&elems=43018"
 
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
 
 async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
+
     table_name = "table10min" if is10minutes else "table1h"
     # print(f"{url}{table_name}&lang=en&elems=4301e")
     driver.get(f"{url}{table_name}&lang=en&elems=4301e")
@@ -82,7 +83,7 @@ async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
                     else:
                         date_time_obj = datetime.strptime(full_date_string, '%Y %m/%d %H:%M:%S')
                     data = {
-                        "timestamp": date_time_obj,
+                        "timestamp": date_time_obj.isoformat(),
                         "temperature": temperature,
                         "wind_direction": wind_direction,
                         "wind_speed": wind_speed,
@@ -100,6 +101,11 @@ async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
 
 
 async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
     table_name = "table10min" if is10minutes else "table1h"
     # print(f"{url}{table_name}&lang=en&elems=4301e")
     driver.get(f"{url}{table_name}&lang=en&elems=4301e")
@@ -145,8 +151,10 @@ async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
                         date_time_obj = datetime.strptime(full_date_string, '%Y %m/%d %H:%M:%S')
                     else:
                         date_time_obj = datetime.strptime(full_date_string, '%Y %m/%d %H:%M:%S')
+                    date_time_custom = date_time_obj.isoformat()
+                    date_time_custom = date_time_custom.replace("T", " ")
                     data = {
-                        "timestamp": date_time_obj,
+                        "timestamp": date_time_custom,
                         "temperature": temperature,
                         "wind_direction": wind_direction,
                         "wind_speed": wind_speed,
@@ -157,14 +165,23 @@ async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
                     }
                     print(data)
                     break
-        driver.quit()
+        # driver.quit()
         return data
     except TimeoutException as e:
-        driver.quit()
+        # driver.quit()
         raise Exception(e)
 
 
 if __name__ == "__main__":
+    # now = time.time()
+    # # get_all_observation_data(is10minutes=True)
+    # get_last_observation_data(is10minutes=True)
+    # dif = time.time() - now
+    # hours, rem = divmod(dif, 3600)
+    # minutes, rem = divmod(rem, 60)
+    # seconds, ms = divmod(rem, 1)
+    # ms = int(ms * 1000)
+    # print(f"Selisih waktu: {int(hours):02}:{int(minutes):02}:{int(seconds):02}.{ms:03}")
     async def main():
         now = time.time()
         # get_all_observation_data(is10minutes=True)
@@ -174,5 +191,7 @@ if __name__ == "__main__":
         minutes, rem = divmod(rem, 60)
         seconds, ms = divmod(rem, 1)
         ms = int(ms * 1000)
-        print(print(f"Selisih waktu: {int(hours):02}:{int(minutes):02}:{int(seconds):02}.{ms:03}"))
+        print(f"Selisih waktu: {int(hours):02}:{int(minutes):02}:{int(seconds):02}.{ms:03}")
+
+
     asyncio.run(main())

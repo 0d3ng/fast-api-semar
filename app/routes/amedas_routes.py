@@ -39,7 +39,7 @@ async def create_amedas(data: List[AmedasCreate], token: str = Depends(oauth2_sc
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/amedas", response_model=AmedasResponse)
+@router.get("/amedas/last", response_model=AmedasResponse)
 async def get_amedas_last(token: str = Depends(oauth2_scheme)):
     try:
         logger.info("get last amedas")

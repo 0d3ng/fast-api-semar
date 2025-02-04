@@ -12,6 +12,7 @@ import traceback
 from datetime import datetime
 
 import pytz
+from dateutil.zoneinfo import tzfile
 from fastapi import HTTPException
 
 from app.models.amedas import Amedas
@@ -29,8 +30,10 @@ class AmedasService:
             amedas_list = []
             for document in documents:
                 datetime_jpn = datetime.now(tz=pytz.UTC)
+                timestamp = datetime.strptime(document['timestamp'], "%Y-%m-%d %H:%M:%S")
+                timestamp = timestamp.astimezone(pytz.UTC)
                 amedasnew: Amedas = Amedas(
-                    timestamp=document['timestamp'],
+                    timestamp=timestamp,
                     temperature=document['temperature'],
                     wind_speed=document['wind_speed'],
                     wind_direction=document['wind_direction'],
@@ -40,12 +43,12 @@ class AmedasService:
                     horizontal_visibility=document['horizontal_visibility'],
                     inserted_at=datetime_jpn
                 )
-                amedas_list.append(amedasnew)
+                amedas_list.append(amedasnew.model_dump(by_alias=True))
             result = await db.sensor_amedas.insert_many(amedas_list)
-            if result.inserted_id:
-                logger.info(f"Inserted {len(result)} records")
+            if result.inserted_ids:
+                logger.info(f"Inserted {len(result.inserted_ids)} records")
                 return {
-                    "inserted: ": len(result),
+                    "inserted: ": len(result.inserted_ids),
                     "ids": result.inserted_ids
                 }
             raise HTTPException(status_code=500, detail="Create amedas fail")
@@ -60,8 +63,10 @@ class AmedasService:
         try:
             datetime_jpn = datetime.now(tz=pytz.UTC)
             logger.info(f"data prepare {amedas} to insert")
+            timestamp = amedas.timestamp
+            timestamp = timestamp.astimezone(pytz.UTC)
             amedasnew: Amedas = Amedas(
-                timestamp=amedas.timestamp,
+                timestamp=timestamp,
                 temperature=amedas.temperature,
                 wind_speed=amedas.wind_speed,
                 wind_direction=amedas.wind_direction,
@@ -85,7 +90,7 @@ class AmedasService:
     @staticmethod
     async def get_sensor_data_latest():
         try:
-            latest = await db.sensor_amedas.find_one(sort=[("inserted_at", -1)])
+            latest = await db.sensor_amedas.find_one(sort=[("timestamp", -1)])
             if latest:
                 logger.info(f"Latest sensor data found: {latest}")
                 return AmedasResponse(**latest)

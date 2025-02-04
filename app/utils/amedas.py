@@ -94,7 +94,7 @@ async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
                         "sea_level_pressure": sea_level_pressure,
                         "horizontal_visibility": horizontal_visibility
                     }
-                    print(data)
+                    # print(data)
                     amedas_data.append(data)
         return amedas_data
     except TimeoutException:

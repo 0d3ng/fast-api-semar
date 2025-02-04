@@ -21,6 +21,7 @@ from starlette.responses import JSONResponse
 from app.messaging.mqtt_client import start_mqtt_client, mqtt_cli, running
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes, \
     widget_routes, server_routes, amedas_routes
+from app.scripts.amedas_scheduler import service_amedas_scheduler
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -58,6 +59,8 @@ def ping():
 async def startup():
     logger.info("Server starting up...")
     asyncio.create_task(start_mqtt_client())
+
+    asyncio.create_task(service_amedas_scheduler())
 
 
 @app.on_event("shutdown")

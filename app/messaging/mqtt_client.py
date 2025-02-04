@@ -130,6 +130,15 @@ async def start_mqtt_client():
         logger.info(f"server: {server}")
 
         logger.info("Starting MQTT client")
+        ascii_art = r"""
+                    .___  ___.   ______     .___________..___________.           
+                    |   \/   |  /  __  \    |           ||           |           
+                    |  \  /  | |  |  |  |   `---|  |----``---|  |----`           
+                    |  |\/|  | |  |  |  |       |  |         |  |                
+         __  __  __ |  |  |  | |  `--'  '--.    |  |         |  |     __  __  __ 
+        (__)(__)(__)|__|  |__|  \_____\_____\   |__|         |__|    (__)(__)(__)
+        """
+        logger.info(ascii_art)
         mqtt_cli = mqtt.Client()
         mqtt_cli.username_pw_set(server.parameters['username'], server.parameters['password'])
         mqtt_cli.on_connect = on_connect

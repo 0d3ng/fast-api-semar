@@ -75,31 +75,6 @@ async def start_amedas_scheduler():
                     else:
                         logger.info(
                             f"no insert dt_amedas:{tz_amedas_local.isoformat()} db: {tz_jma.isoformat()}")
-
-                # amedas_jma = await get_last_observation_data(is10minutes=True)
-                # if amedas_jma:
-                #     dt_amedas = datetime.strptime(amedas_jma["timestamp"], '%Y-%m-%d %H:%M:%S')
-                #     if dt_amedas.tzinfo is None:
-                #         tz_jma = dt_amedas.replace(tzinfo=local_tz)
-                #     else:
-                #         tz_jma = dt_amedas.astimezone(local_tz)
-                #     logger.info(f"database: {tz_amedas_local.isoformat()} jma: {tz_jma.isoformat()}")
-                #     if tz_jma > tz_amedas:
-                #         amedas_new: AmedasCreate = AmedasCreate(
-                #             timestamp=tz_jma,
-                #             temperature=amedas_jma["temperature"],
-                #             wind_direction=amedas_jma["wind_direction"],
-                #             wind_speed=amedas_jma["wind_speed"],
-                #             humidity=amedas_jma["humidity"],
-                #             pressure=amedas_jma["pressure"],
-                #             sea_level_pressure=amedas_jma["sea_level_pressure"],
-                #             horizontal_visibility=amedas_jma["horizontal_visibility"]
-                #         )
-                #         if await AmedasService.insert_one(amedas_new):
-                #             logger.info(f"amedas inserted into database: {amedas_new}")
-                #     else:
-                #         logger.info(
-                #             f"no insert dt_amedas:{tz_amedas_local.isoformat()} db: {tz_jma.isoformat()}")
             except Exception as e:
                 logger.error(e)
     except Exception as e:

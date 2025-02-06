@@ -11,3 +11,6 @@ Using command uvicorn `uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload`
 
 ### Generate Key Secret Token
 The python file in `ecc_tools.py`, type `export PYTHONPATH=$(pwd)` first
+
+### Build image
+`docker build -t 0d3ng:fast-api-semar:v1 .`

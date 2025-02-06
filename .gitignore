@@ -3,3 +3,4 @@ app.*
 *.pem
 app/../app.log
 .env
+run.sh

@@ -4,3 +4,6 @@ app.*
 app/../app.log
 .env
 run.sh
+__pycache__/
+*.pyc
+*.pyo

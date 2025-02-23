@@ -129,9 +129,9 @@ class SensorActuatorService:
                     timestamp=sensor_data["timestamp"],
                     inserted_at=sensor_data["inserted_at"],
                 )
-                logger.info(f"{data_source} {sensor_data["_id"]}")
+                # logger.info(f"{data_source} {sensor_data["_id"]}")
                 data_sources.append(data_source)
-                logger.info("")
+                # logger.info("")
             return data_sources
 
         except (KeyError, TypeError, Exception) as e:

@@ -12,7 +12,6 @@ import traceback
 from datetime import datetime
 
 import pytz
-from dateutil.zoneinfo import tzfile
 from fastapi import HTTPException
 
 from app.models.amedas import Amedas

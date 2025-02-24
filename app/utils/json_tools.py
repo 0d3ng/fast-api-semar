@@ -10,6 +10,7 @@
 #  """
 
 import json
+import numbers
 
 
 def extract_values(data, parent_key=''):
@@ -42,6 +43,9 @@ def extract_sensors(data, parent_key=''):
     # json_result = json.dumps(data_dict)
     # return json_result
 
+def is_number(value):
+    return isinstance(value, numbers.Number)
+
 
 # Contoh data JSON
 data = {
@@ -72,5 +76,5 @@ data = {
 
 # Ekstrak semua nilai
 # print(data)
-# result = extract_sensors(data)
-# print(result)
+result = extract_sensors(data)
+print(result)

@@ -2,6 +2,7 @@ import traceback
 from datetime import datetime
 
 import pytz
+from anyio.abc import value
 from bson import ObjectId
 from fastapi import HTTPException
 from passlib.context import CryptContext
@@ -11,7 +12,7 @@ from app.models.sensor_actuator import SensorData
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate, SensorActuatorResponse, DataSource
 from app.schemas.token_schema import TokenDataDevice
 from app.utils.db import db
-from app.utils.json_tools import extract_sensors
+from app.utils.json_tools import extract_sensors, is_number
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -103,7 +104,7 @@ class SensorActuatorService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_data_sources(device_code: str, start: str = None, end: str = None):
+    async def get_data_sources(device_code: str, start: str = None, end: str = None, only_numbers: bool = False):
         try:
             utc_tz = pytz.timezone('UTC')
             filter = {}
@@ -123,15 +124,21 @@ class SensorActuatorService:
             collection_name = "sensor_data_" + device_code
             cursor = db[collection_name].find(filter)
             async for sensor_data in cursor:
+                if only_numbers:
+                    data = extract_sensors(sensor_data["data"])
+                    json_data = {key: value for key, value in data.items() if is_number(value)}
+                else:
+                    json_data = extract_sensors(sensor_data["data"])
+
                 data_source: DataSource = DataSource(
                     id=sensor_data["_id"],
-                    data=extract_sensors(sensor_data["data"]),
+                    data=json_data,
                     timestamp=sensor_data["timestamp"],
                     inserted_at=sensor_data["inserted_at"],
                 )
-                logger.info(f"{data_source} {sensor_data["_id"]}")
+                # logger.info(f"{data_source} {sensor_data["_id"]}")
                 data_sources.append(data_source)
-                logger.info("")
+                # logger.info("")
             return data_sources
 
         except (KeyError, TypeError, Exception) as e:

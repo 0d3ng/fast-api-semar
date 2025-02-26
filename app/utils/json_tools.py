@@ -102,5 +102,5 @@ data = {
 
 # Ekstrak semua nilai
 # print(data)
-result = extract_sensors(data)
-print(result)
+# result = extract_sensors(data)
+# print(result)

@@ -10,7 +10,7 @@ from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorAct
     StatisticsDescriptive
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.logger import get_logger
-from app.utils.statistics import descriptive
+from app.utils.statistics import descriptive, corr_matrix
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -86,6 +86,20 @@ async def read_statistics(device_code: str, start: str = Query(...), end: str = 
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+@router.get("/sensors/{device_code}/corr_matrix")
+async def read_correlation_matrix(device_code: str, start: str = Query(...), end: str = Query(...),
+                          token: str = Depends(oauth2_scheme)):
+    try:
+        logger.info("get correlation_matrix")
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+
+        sensors_data = await SensorActuatorService.get_data_sources(device_code, start, end, only_numbers=True)
+        logger.info(f"Number of records: {len(sensors_data)}")
+        json_desc = corr_matrix(sensors_data)
+        logger.info(f"Statistics desc: {json_desc}")
+        return json_desc
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.put("/sensors/{sensor_data_id}", response_model=SensorActuatorResponse)
 async def update_sensor(sensor_data_id: str, sensor_data: SensorActuatorCreate, token: str = Depends(oauth2_scheme)):

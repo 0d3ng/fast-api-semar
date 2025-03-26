@@ -20,8 +20,9 @@ from starlette.responses import JSONResponse
 
 from app.messaging.mqtt_client import start_mqtt_client, mqtt_cli, running
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes, \
-    widget_routes, server_routes, amedas_routes
+    widget_routes, server_routes, amedas_routes, tenki_routes
 from app.scripts.amedas_scheduler import service_amedas_scheduler
+from app.scripts.tenki_scheduler import service_tenki_scheduler
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -62,6 +63,8 @@ async def startup():
 
     asyncio.create_task(service_amedas_scheduler())
 
+    asyncio.create_task(service_tenki_scheduler())
+
 
 @app.on_event("shutdown")
 async def shutdown():
@@ -79,6 +82,7 @@ app.include_router(role_routes.router, prefix="/api/v1", tags=["Roles"])
 app.include_router(widget_routes.router, prefix="/api/v1", tags=["Widgets"])
 app.include_router(server_routes.router, prefix="/api/v1", tags=["Servers"])
 app.include_router(amedas_routes.router, prefix="/api/v1", tags=["Amedas"])
+app.include_router(tenki_routes.router, prefix="/api/v1", tags=["Tenki"])
 app.include_router(route_unsecure)
 
 if __name__ == "__main__":

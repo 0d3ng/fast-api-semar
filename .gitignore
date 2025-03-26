@@ -1,9 +1,10 @@
 .idea
 app.*
 *.pem
-app/../app.log
+**/app.log
 .env
 run.sh
 __pycache__/
 *.pyc
 *.pyo
+**/__pycache__/

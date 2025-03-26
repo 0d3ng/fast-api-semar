@@ -41,13 +41,11 @@ async def service_tenki_scheduler():
 
 async def start_tenki_service():
     global running
+    local_tz = tzlocal.get_localzone()
+    packet_datetime = datetime.now(local_tz)
+    local_date = packet_datetime.date()
     try:
         tenki = await TenkiServices.get_last_tenki()
-        local_tz = tzlocal.get_localzone()
-        packet_datetime = datetime.now(local_tz)
-        packet_datetime = pytz.utc.localize(packet_datetime)
-        local_datetime = packet_datetime.astimezone(local_tz)
-        local_date = local_datetime.date()
         if tenki:
             logger.info(f"db: {tenki}")
             try:
@@ -71,28 +69,23 @@ async def start_tenki_service():
                             logger.info(f"data added {tenki_new}")
             except Exception as e:
                 logger.error(e)
-        else:
-            try:
-                tenki_scrap = await get_current_pollen()
-                if tenki_scrap:
-                    logger.info(f"pollen: {tenki_scrap}")
-                    if tenki.weather == tenki_scrap["weather"] and tenki.pollen == tenki_scrap[
-                        "pollen"] and tenki.precipitation == tenki_scrap["precip"] and tenki.temperature_high == \
-                            tenki_scrap["high_temp"] and tenki.temperature_low == tenki_scrap["low_temp"]:
-                        logger.info("Data similar")
-                    else:
-                        tenki_new: TenkiCreate = TenkiCreate(
-                            date=local_date,
-                            pollen=tenki_scrap["pollen"],
-                            precipitation=tenki_scrap["precip"],
-                            temperature_high=tenki_scrap["high_temp"],
-                            temperature_low=tenki_scrap["low_temp"],
-                            weather=tenki_scrap["weather"]
-                        )
-                        if await TenkiServices.insert(tenki_new):
-                            logger.info(f"data added {tenki_new}")
-            except Exception as e:
-                logger.error(e)
+                running = False
     except Exception as e:
         logger.error(e)
-        running = False
+        try:
+            tenki_scrap = await get_current_pollen()
+            if tenki_scrap:
+                logger.info(f"pollen: {tenki_scrap}")
+                tenki_new: TenkiCreate = TenkiCreate(
+                    date=local_date,
+                    pollen=tenki_scrap["pollen"],
+                    precipitation=tenki_scrap["precip"],
+                    temperature_high=tenki_scrap["high_temp"],
+                    temperature_low=tenki_scrap["low_temp"],
+                    weather=tenki_scrap["weather"]
+                )
+                if await TenkiServices.insert(tenki_new):
+                    logger.info(f"data added {tenki_new}")
+        except Exception as e:
+            logger.error(e)
+            running = False

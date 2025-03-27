@@ -9,13 +9,13 @@
 #   Description:
 #   """
 import traceback
-from datetime import datetime
+from datetime import datetime, date
 
 import pytz
 from fastapi import HTTPException
 
 from app.models.tenki import Tenki
-from app.schemas.tenki_schema import TenkiCreate
+from app.schemas.tenki_schema import TenkiCreate, TenkiResponse
 from app.utils.db import db
 from app.utils.logger import get_logger
 
@@ -28,7 +28,7 @@ class TenkiServices:
         try:
             datetime_jpn = datetime.now(tz=pytz.UTC)
             tenki_new: Tenki = Tenki(
-                date=tenki.date,
+                date_pollen=tenki.date_pollen,
                 pollen=tenki.pollen,
                 weather=tenki.weather,
                 temperature_high=tenki.temperature_high,
@@ -36,13 +36,14 @@ class TenkiServices:
                 precipitation=tenki.precipitation,
                 inserted_at=datetime_jpn
             )
+            logger.info(f"Inserting {tenki_new} to database")
             result = await db.tenki.insert_one(tenki_new.model_dump(by_alias=True))
             if result.inserted_id:
                 logger.info(f"Inserted {result.inserted_id}")
                 return True
             return False
         except Exception as e:
-            logger.error(f"Failed to create sensor_data: {e}")
+            logger.error(f"Failed to create tenki: {e}")
             tb_str = ''.join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
         return False
@@ -50,10 +51,10 @@ class TenkiServices:
     @staticmethod
     async def get_last_tenki():
         try:
-            latest = await db.tenki.find_one(sort=[('date', -1)])
+            latest = await db.tenki.find_one(sort=[('date_pollen', -1)])
             if latest:
                 logger.info(f"Last tenki found: {latest}")
-                return latest
+                return TenkiResponse(**latest)
             raise HTTPException(status_code=404, detail="tenki not found")
         except Exception as e:
             logger.error(f"Failed to get tenki: {e}")

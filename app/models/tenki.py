@@ -18,12 +18,12 @@ from app.utils.custom_fields import PydanticObjectId
 
 class Tenki(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
-    date: date
+    date_pollen: datetime
     pollen: str
     weather: str
-    temperature_high: float
-    temperature_low: float
-    precipitation: str
+    temperature_high: int
+    temperature_low: int
+    precipitation: int
     inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[datetime] = None

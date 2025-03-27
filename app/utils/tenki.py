@@ -9,6 +9,7 @@
 #   Description:
 #   """
 import asyncio
+import re
 import time
 
 from googletrans import Translator
@@ -22,6 +23,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
 url = "https://tenki.jp/pollen/7/36/6610/33100/"
+# url = "https://tenki-jp.translate.goog/pollen/7/36/6610/33100/?_x_tr_sl=id&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp"
 
 translator = Translator()
 
@@ -55,17 +57,17 @@ async def get_current_pollen():
         # Cetak hasil
         pollen_trans = await translate_text(pollen_count)
         weather_trans = await translate_text(weather)
-        print(f"Pollen: {pollen_trans}")
-        print(f"Weather: {weather_trans}")
-        print(f"High Temp: {high_temp}")
-        print(f"Low Temp: {low_temp}")
-        print(f"Precipitation: {precip}")
+        print(f"Pollen: {pollen_count} {pollen_trans}")
+        print(f"Weather: {weather} {weather_trans}")
+        print(f"High Temp: {high_temp} {high_temp.replace("\u2103", "")}")
+        print(f"Low Temp: {low_temp} {low_temp.replace("\u2103", "")}")
+        print(f"Precipitation: {precip} {precip.replace("%", "")}")
         return {
             "pollen": pollen_trans,
             "weather": weather_trans,
-            "high_temp": high_temp,
-            "low_temp": low_temp,
-            "precip": precip
+            "high_temp": high_temp.replace("\u2103", ""),
+            "low_temp": low_temp.replace("\u2103", ""),
+            "precip": precip.replace("%", "")
         }
     except TimeoutException as e:
         print(e)

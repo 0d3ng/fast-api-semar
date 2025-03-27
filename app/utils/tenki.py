@@ -9,7 +9,6 @@
 #   Description:
 #   """
 import asyncio
-import re
 import time
 
 from googletrans import Translator
@@ -57,11 +56,11 @@ async def get_current_pollen():
         # Cetak hasil
         pollen_trans = await translate_text(pollen_count)
         weather_trans = await translate_text(weather)
-        print(f"Pollen: {pollen_count} {pollen_trans}")
-        print(f"Weather: {weather} {weather_trans}")
-        print(f"High Temp: {high_temp} {high_temp.replace("\u2103", "")}")
-        print(f"Low Temp: {low_temp} {low_temp.replace("\u2103", "")}")
-        print(f"Precipitation: {precip} {precip.replace("%", "")}")
+        # print(f"Pollen: {pollen_count} {pollen_trans}")
+        # print(f"Weather: {weather} {weather_trans}")
+        # print(f"High Temp: {high_temp} {high_temp.replace("\u2103", "")}")
+        # print(f"Low Temp: {low_temp} {low_temp.replace("\u2103", "")}")
+        # print(f"Precipitation: {precip} {precip.replace("%", "")}")
         return {
             "pollen": pollen_trans,
             "weather": weather_trans,

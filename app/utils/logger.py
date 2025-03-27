@@ -37,5 +37,5 @@ def get_logger(name):
 
 
 # Example usage
-logger = get_logger(__name__)
-logger.info("Logger is set up and ready to go!")
+# logger = get_logger(__name__)
+# logger.info("Logger is set up and ready to go!")

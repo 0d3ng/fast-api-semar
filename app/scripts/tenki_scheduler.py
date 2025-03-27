@@ -36,13 +36,13 @@ async def service_tenki_scheduler():
         """
         logger.info(ascii_art)
         await start_tenki_service()
-        await asyncio.sleep(60 * 1)  # 1 minutes
+        await asyncio.sleep(60 * 60)  # 60 minutes
 
 
 async def start_tenki_service():
     global running
     local_tz = tzlocal.get_localzone()
-    local_date = datetime.now(local_tz).date()
+    local_date = datetime.now(tz=pytz.UTC).date()
     try:
         tenki = await TenkiServices.get_last_tenki()
         if tenki:
@@ -54,25 +54,25 @@ async def start_tenki_service():
                     logger.info(f"{tenki.date_pollen.astimezone(local_tz).date()} {local_date}")
                     if tenki.date_pollen.astimezone(local_tz).date() == local_date:
                         logger.info("Date same")
-                        if tenki.weather == tenki_scrap[
-                            "weather"] and tenki.pollen == \
-                                tenki_scrap["pollen"] and tenki.precipitation == tenki_scrap[
-                            "precip"] and tenki.temperature_high == tenki_scrap[
-                            "high_temp"] and tenki.temperature_low == \
-                                tenki_scrap["low_temp"]:
+                        # logger.info(f"{tenki.temperature_high} {tenki_scrap["high_temp"]}")
+                        clean_high_temp = tenki_scrap["high_temp"].strip()
+                        clean_low_temp = tenki_scrap["low_temp"].strip()
+                        if tenki.weather == tenki_scrap["weather"] and tenki.pollen == tenki_scrap["pollen"] and int(
+                                tenki.precipitation) == int(tenki_scrap["precip"]) and tenki.temperature_low == int(
+                            clean_low_temp) and int(tenki.temperature_high) == int(clean_high_temp):
                             logger.info("Data similar")
                         else:
                             logger.info("to be insert")
-                            # tenki_new: TenkiCreate = TenkiCreate(
-                            #     date_pollen=local_date,
-                            #     pollen=tenki_scrap["pollen"],
-                            #     precipitation=tenki_scrap["precip"],
-                            #     temperature_high=tenki_scrap["high_temp"],
-                            #     temperature_low=tenki_scrap["low_temp"],
-                            #     weather=tenki_scrap["weather"]
-                            # )
-                            # if await TenkiServices.insert(tenki_new):
-                            #     logger.info(f"data added {tenki_new}")
+                            tenki_new: TenkiCreate = TenkiCreate(
+                                date_pollen=local_date,
+                                pollen=tenki_scrap["pollen"],
+                                precipitation=tenki_scrap["precip"],
+                                temperature_high=tenki_scrap["high_temp"],
+                                temperature_low=tenki_scrap["low_temp"],
+                                weather=tenki_scrap["weather"]
+                            )
+                            if await TenkiServices.insert(tenki_new):
+                                logger.info(f"data added {tenki_new}")
                     else:
                         logger.info("Date different")
                         tenki_new: TenkiCreate = TenkiCreate(

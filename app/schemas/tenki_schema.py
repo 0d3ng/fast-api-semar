@@ -8,7 +8,7 @@
 #   File: tenki_schema.py
 #   Description:
 #   """
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator

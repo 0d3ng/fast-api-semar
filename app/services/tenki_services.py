@@ -9,7 +9,7 @@
 #   Description:
 #   """
 import traceback
-from datetime import datetime, date
+from datetime import datetime
 
 import pytz
 from fastapi import HTTPException
@@ -37,7 +37,7 @@ class TenkiServices:
                 inserted_at=datetime_jpn
             )
             logger.info(f"Inserting {tenki_new} to database")
-            result = await db.tenki.insert_one(tenki_new.model_dump(by_alias=True))
+            result = await db.sensor_tenki.insert_one(tenki_new.model_dump(by_alias=True))
             if result.inserted_id:
                 logger.info(f"Inserted {result.inserted_id}")
                 return True
@@ -51,7 +51,7 @@ class TenkiServices:
     @staticmethod
     async def get_last_tenki():
         try:
-            latest = await db.tenki.find_one(sort=[('date_pollen', -1)])
+            latest = await db.sensor_tenki.find_one(sort=[('inserted_at', -1)])
             if latest:
                 logger.info(f"Last tenki found: {latest}")
                 return TenkiResponse(**latest)

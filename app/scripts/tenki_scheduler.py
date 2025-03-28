@@ -36,7 +36,7 @@ async def service_tenki_scheduler():
         """
         logger.info(ascii_art)
         await start_tenki_service()
-        await asyncio.sleep(60 * 1)  # 60 minutes
+        await asyncio.sleep(60 * 15)  # 60 minutes
 
 
 async def start_tenki_service():

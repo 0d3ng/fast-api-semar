@@ -16,6 +16,7 @@ import tzlocal
 
 from app.schemas.tenki_schema import TenkiCreate
 from app.services.tenki_services import TenkiServices
+from app.utils.config import DELAY_TENKI
 from app.utils.logger import get_logger
 from app.utils.tenki import get_current_pollen
 
@@ -36,7 +37,7 @@ async def service_tenki_scheduler():
         """
         logger.info(ascii_art)
         await start_tenki_service()
-        await asyncio.sleep(60 * 15)  # 60 minutes
+        await asyncio.sleep(60 * DELAY_TENKI)  # 60 minutes
 
 
 async def start_tenki_service():
@@ -87,7 +88,6 @@ async def start_tenki_service():
                             logger.info(f"data added {tenki_new}")
             except Exception as e:
                 logger.error(e)
-                running = False
     except Exception as e:
         logger.error(e)
         try:
@@ -106,7 +106,6 @@ async def start_tenki_service():
                     logger.info(f"data added {tenki_new}")
         except Exception as e:
             logger.error(e)
-            running = False
 
 
 if __name__ == "__main__":

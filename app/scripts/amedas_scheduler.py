@@ -17,6 +17,7 @@ import tzlocal
 from app.schemas.amedas_schema import AmedasCreate
 from app.services.amedas_service import AmedasService
 from app.utils.amedas import get_all_observation_data, get_last_observation_data
+from app.utils.config import DELAY_AMEDAS
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -37,7 +38,7 @@ async def service_amedas_scheduler():
                 """
         logger.info(ascii_art)
         await start_amedas_scheduler()
-        await asyncio.sleep(60 * 10)  # 10 minutes
+        await asyncio.sleep(60 * DELAY_AMEDAS)  # 10 minutes
 
 
 async def start_amedas_scheduler():
@@ -95,4 +96,3 @@ async def start_amedas_scheduler():
                 logger.warning(f"no insert datas")
         except Exception as e:
             logger.error(e)
-            running = False

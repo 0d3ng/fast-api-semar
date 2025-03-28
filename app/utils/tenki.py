@@ -21,6 +21,9 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 url = "https://tenki.jp/pollen/7/36/6610/33100/"
 # url = "https://tenki-jp.translate.goog/pollen/7/36/6610/33100/?_x_tr_sl=id&_x_tr_tl=en&_x_tr_hl=en&_x_tr_pto=wapp"
 
@@ -69,7 +72,11 @@ async def get_current_pollen():
             "precip": precip.replace("%", "")
         }
     except TimeoutException as e:
-        print(e)
+        logger.error(f"timeout: {e}")
+        raise e
+    except Exception as e:
+        logger.error(f"exception: {e}")
+        raise e
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 
-from app.messaging.mqtt_client import start_mqtt_client, mqtt_cli, running
+from app.messaging.mqtt_client import start_mqtt_client
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes, \
     widget_routes, server_routes, amedas_routes, tenki_routes
 from app.scripts.amedas_scheduler import service_amedas_scheduler

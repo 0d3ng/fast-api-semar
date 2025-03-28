@@ -73,8 +73,8 @@ class SensorActuatorService:
             collection_name = "sensor_data_" + device_code
             sensor_data = await db[collection_name].find_one(sort=[("inserted_at", DESCENDING)])
             logger.info(f"sensor_data: {sensor_data}")
-            logger.info(f"type data: {type(sensor_data['data'])}")
             if sensor_data:
+                logger.info(f"type data: {type(sensor_data['data'])}")
                 new_response: SensorActuatorResponse = SensorActuatorResponse(**sensor_data, device_code=device_code)
                 data = extract_sensors(new_response.data)
                 new_response.data = data

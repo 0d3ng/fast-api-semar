@@ -61,7 +61,7 @@ class AmedasService:
     async def insert_one(amedas: AmedasCreate):
         try:
             datetime_jpn = datetime.now(tz=pytz.UTC)
-            logger.info(f"data prepare {amedas} to insert")
+            # logger.info(f"data prepare {amedas} to insert")
             timestamp = amedas.timestamp
             timestamp = timestamp.astimezone(pytz.UTC)
             amedasnew: Amedas = Amedas(

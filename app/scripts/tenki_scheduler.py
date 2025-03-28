@@ -36,7 +36,7 @@ async def service_tenki_scheduler():
         """
         logger.info(ascii_art)
         await start_tenki_service()
-        await asyncio.sleep(60 * 60)  # 60 minutes
+        await asyncio.sleep(60 * 1)  # 60 minutes
 
 
 async def start_tenki_service():
@@ -51,7 +51,7 @@ async def start_tenki_service():
                 tenki_scrap = await get_current_pollen()
                 if tenki_scrap:
                     logger.info(f"pollen: {tenki_scrap}")
-                    logger.info(f"{tenki.date_pollen.astimezone(local_tz).date()} {local_date}")
+                    # logger.info(f"{tenki.date_pollen.astimezone(local_tz).date()} {local_date}")
                     if tenki.date_pollen.astimezone(local_tz).date() == local_date:
                         logger.info("Date same")
                         # logger.info(f"{tenki.temperature_high} {tenki_scrap["high_temp"]}")

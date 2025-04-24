@@ -21,20 +21,19 @@ def get_logger(name):
 
     # Create handlers
     console_handler = logging.StreamHandler()
-    # file_handler = RotatingFileHandler(LOG_FILE, maxBytes=1000000, backupCount=3)
+    file_handler = RotatingFileHandler(LOG_FILE, maxBytes=5 * 1024 * 1024, backupCount=3)
 
     # Create formatters and add them to the handlers
     console_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)')
-    # file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)')
+    file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)')
     console_handler.setFormatter(console_format)
-    # file_handler.setFormatter(file_format)
+    file_handler.setFormatter(file_format)
 
     # Add handlers to the logger
     logger.addHandler(console_handler)
-    # logger.addHandler(file_handler)
+    logger.addHandler(file_handler)
 
     return logger
-
 
 # Example usage
 # logger = get_logger(__name__)

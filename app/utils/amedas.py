@@ -102,10 +102,12 @@ async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
                     }
                     # print(data)
                     amedas_data.append(data)
+        driver.quit()
         return amedas_data
-    except TimeoutException:
+    except TimeoutException as e:
         print("TimeoutException")
-    # driver.quit()
+        driver.quit()
+        raise Exception(e)
 
 
 async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
@@ -179,10 +181,10 @@ async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
                     }
                     # print(data)
                     break
-        # driver.quit()
+        driver.quit()
         return data
     except TimeoutException as e:
-        # driver.quit()
+        driver.quit()
         raise Exception(e)
 
 

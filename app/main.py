@@ -23,6 +23,7 @@ from app.routes import user_routes, role_routes, device_routes, project_routes, 
     widget_routes, server_routes, amedas_routes, tenki_routes
 from app.scripts.amedas_scheduler import service_amedas_scheduler
 from app.scripts.tenki_scheduler import service_tenki_scheduler
+from app.utils.driver_manager import close_shared_driver
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -71,6 +72,7 @@ async def shutdown():
     global running
     logger.info("Server shutting down...")
     running = False
+    await close_shared_driver()
 
 
 app.include_router(sensor_routes.router, prefix="/api/v1", tags=["Sensors"])

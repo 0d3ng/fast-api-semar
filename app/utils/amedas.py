@@ -35,6 +35,12 @@ async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-background-networking")
+    chrome_options.add_argument("--remote-debugging-port=0")
+    chrome_options.add_argument("--disable-cache")
+    chrome_options.add_argument("--disk-cache-dir=/dev/null")
     driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
 
     table_name = "table10min" if is10minutes else "table1h"
@@ -107,6 +113,12 @@ async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
     chrome_options.add_argument("--headless")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-background-networking")
+    chrome_options.add_argument("--remote-debugging-port=0")
+    chrome_options.add_argument("--disable-cache")
+    chrome_options.add_argument("--disk-cache-dir=/dev/null")
     driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
     table_name = "table10min" if is10minutes else "table1h"
     # print(f"{url}{table_name}&lang=en&elems=4301e")

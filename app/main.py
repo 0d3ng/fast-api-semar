@@ -21,6 +21,7 @@ from starlette.responses import JSONResponse
 from app.messaging.mqtt_client import start_mqtt_client
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes, \
     widget_routes, server_routes, amedas_routes, tenki_routes
+from app.routes.k8s import kub_sensor_routes
 from app.scripts.amedas_scheduler import service_amedas_scheduler
 from app.scripts.tenki_scheduler import service_tenki_scheduler
 from app.utils.driver_manager import close_shared_driver
@@ -76,6 +77,7 @@ async def shutdown():
 
 
 app.include_router(sensor_routes.router, prefix="/api/v1", tags=["Sensors"])
+app.include_router(kub_sensor_routes.router, prefix="/api/v1", tags=["KubSensors"])
 app.include_router(token_routes.router, prefix="/api/v1", tags=["Tokens"])
 app.include_router(device_routes.router, prefix="/api/v1", tags=["Devices"])
 app.include_router(project_routes.router, prefix="/api/v1", tags=["Projects"])

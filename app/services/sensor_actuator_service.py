@@ -55,6 +55,38 @@ class SensorActuatorService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
+    async def create_sensor_data_without_token(sensor_data: SensorActuatorCreate):
+        try:
+            logger.info(sensor_data)
+            datetime_jpn = datetime.now(tz=pytz.UTC)
+            timestamp_utc = sensor_data.timestamp.astimezone(pytz.UTC)
+            new_sensor_data: SensorData = SensorData(
+                device_id=sensor_data.device_id,
+                data=sensor_data.data,
+                timestamp=timestamp_utc,
+                inserted_at=datetime_jpn
+            )
+            logger.info(new_sensor_data)
+            collection_name = "sensor_data_" + sensor_data.device_code
+            logger.info(collection_name)
+            new_sensor_data_inserted = await db[collection_name].insert_one(new_sensor_data.model_dump(by_alias=True))
+            new_sensor_data_id = new_sensor_data_inserted.inserted_id
+            logger.info(f"{new_sensor_data_id} {type(new_sensor_data_id)}")
+            return SensorActuatorResponse(
+                _id=new_sensor_data_id,
+                device_id=sensor_data.device_id,
+                device_code=sensor_data.device_code,
+                data=extract_sensors(sensor_data.data),
+                timestamp=sensor_data.timestamp.isoformat(),
+                inserted_at=datetime_jpn.isoformat()
+            )
+        except Exception as e:
+            logger.error(f"Failed to create sensor_data: {e}")
+            tb_str = ''.join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
     async def get_sensor_data(sensor_data_id: str, device_code: str):
         try:
             collection_name = "sensor_data_" + device_code

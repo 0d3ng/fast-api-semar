@@ -21,6 +21,7 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app.utils.driver_manager import get_shared_driver
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -36,11 +37,7 @@ async def translate_text(text):
 
 
 async def get_current_pollen():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver = await get_shared_driver()
     driver.get(url)
     driver.implicitly_wait(10)
 

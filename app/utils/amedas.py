@@ -22,6 +22,8 @@ from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
+from app.utils.driver_manager import get_shared_driver, close_shared_driver
+
 # 10 minutes
 url = "https://www.jma.go.jp/bosai/amedas/#area_type=offices&area_code=330000&amdno=66408&format="
 
@@ -29,14 +31,8 @@ url = "https://www.jma.go.jp/bosai/amedas/#area_type=offices&area_code=330000&am
 # 1 hour
 # url = "https://www.jma.go.jp/bosai/amedas/#area_type=offices&area_code=330000&amdno=66408&format=table1h&lang=en&elems=43018"
 
-
 async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
-
+    driver = await get_shared_driver()
     table_name = "table10min" if is10minutes else "table1h"
     # print(f"{url}{table_name}&lang=en&elems=4301e")
     driver.get(f"{url}{table_name}&lang=en&elems=4301e")
@@ -96,18 +92,16 @@ async def get_all_observation_data(is10minutes: bool = False, wait: float = 5):
                     }
                     # print(data)
                     amedas_data.append(data)
+        # driver.quit()
         return amedas_data
-    except TimeoutException:
+    except TimeoutException as e:
         print("TimeoutException")
-    # driver.quit()
+        # driver.quit()
+        raise Exception(e)
 
 
 async def get_last_observation_data(is10minutes: bool = False, wait: float = 5):
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.ChromiumDriver(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver = await get_shared_driver()
     table_name = "table10min" if is10minutes else "table1h"
     # print(f"{url}{table_name}&lang=en&elems=4301e")
     driver.get(f"{url}{table_name}&lang=en&elems=4301e")
@@ -195,6 +189,7 @@ if __name__ == "__main__":
         ms = int(ms * 1000)
         print(data)
         print(f"Selisih waktu: {int(hours):02}:{int(minutes):02}:{int(seconds):02}.{ms:03}")
+        await close_shared_driver()
 
 
     asyncio.run(main())

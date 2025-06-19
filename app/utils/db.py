@@ -25,9 +25,9 @@ class Database:
         if Database._client is None:
             try:
                 Database._client = AsyncIOMotorClient(MONGO_URL)
-                logger.info("Connected to MongoDB")
+                logger.info(f"Connected to MongoDB - {MONGO_URL}")
             except Exception as e:
-                logger.error(f"Could not connect to MongoDB: {e}")
+                logger.error(f"Could not connect to MongoDB - {MONGO_URL}: {e}")
                 raise e
         return Database._client
 

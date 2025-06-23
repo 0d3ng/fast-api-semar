@@ -17,6 +17,7 @@ import uvicorn
 from fastapi import FastAPI, APIRouter
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.messaging.mqtt_client import start_mqtt_client
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes, \
@@ -43,6 +44,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+instrumentor = Instrumentator().instrument(app).expose(app)
 
 route_unsecure = APIRouter(prefix="/api/v1", tags=["Unsecure"])
 

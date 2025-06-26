@@ -66,9 +66,9 @@ async def startup():
     logger.info("Server starting up...")
     asyncio.create_task(start_mqtt_client())
 
-    asyncio.create_task(service_amedas_scheduler())
-
-    asyncio.create_task(service_tenki_scheduler())
+    # asyncio.create_task(service_amedas_scheduler())
+    #
+    # asyncio.create_task(service_tenki_scheduler())
 
 
 @app.on_event("shutdown")

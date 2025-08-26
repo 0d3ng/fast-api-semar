@@ -21,4 +21,4 @@ COPY . .
 
 # Menetapkan perintah default untuk menjalankan aplikasi
 # Environment variable ENV bisa diatur melalui perintah `docker run`
-CMD ["sh", "-c", "uvicorn app.main:app --workers 4 --host 0.0.0.0 --port 8001"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8001"]

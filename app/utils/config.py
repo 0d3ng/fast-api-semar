@@ -21,6 +21,7 @@ PRIVATE_KEY_PATH = os.getenv("PRIVATE_KEY_PATH")
 PUBLIC_KEY_PATH = os.getenv("PUBLIC_KEY_PATH")
 LOG_LEVEL = os.getenv("LOG_LEVEL")
 LOG_FILE = os.getenv("LOG_FILE")
+FIRMWARE_FOLDER = os.getenv("FIRMWARE_FOLDER")
 
 DELAY_AMEDAS = int(os.getenv("DELAY_AMEDAS"))
 DELAY_TENKI = int(os.getenv("DELAY_TENKI"))

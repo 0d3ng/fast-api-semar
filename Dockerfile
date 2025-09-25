@@ -1,7 +1,7 @@
 # Menggunakan base image Python versi 3.8.10
 FROM python:3.12.5
 
-RUN apt-get update && apt-get install -y wget unzip \
+RUN apt-get update && apt-get install -y wget unzip iputils-ping \
     && wget -O /tmp/chromium.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
     && apt-get install -y /tmp/chromium.deb \
     && rm -rf /var/lib/apt/lists/* /tmp/chromium.deb

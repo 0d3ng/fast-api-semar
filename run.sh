@@ -13,5 +13,5 @@
 #
 
 source $HOME/.virtualenvs/fast-api-semar/bin/activate
-cd $HOME/fast-api-semar/
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+cd $HOME/.applications/fast-api-semar/
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

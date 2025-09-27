@@ -10,9 +10,9 @@
 #   """
 import os
 
-from fastapi import APIRouter
+from fastapi import APIRouter, UploadFile, File
 from starlette.exceptions import HTTPException
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, JSONResponse
 
 from app.utils.logger import get_logger
 from app.utils.config import FIRMWARE_FOLDER
@@ -29,3 +29,20 @@ async def download_file(filename: str):
     if os.path.exists(file_path):
         return FileResponse(file_path, media_type='application/octet-stream', filename=filename)
     raise HTTPException(status_code=404, detail="File not found")
+
+
+@router.post("/firmware/upload")
+async def upload_file(file: UploadFile = File(...)):
+    try:
+        # pastikan folder ada
+        os.makedirs(FIRMWARE_FOLDER, exist_ok=True)
+        file_path = os.path.join(FIRMWARE_FOLDER, file.filename)
+        # simpan file
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+        logger.info(f"Uploaded {file.filename}")
+        return JSONResponse(content={"message": f"File {file.filename} uploaded successfully"})
+    except Exception as e:
+        logger.error(f"Upload error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload file")

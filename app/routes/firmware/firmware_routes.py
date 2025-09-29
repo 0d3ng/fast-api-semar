@@ -9,6 +9,7 @@
 #   Description:
 #   """
 import os
+from fastapi import Request
 
 from fastapi import APIRouter, UploadFile, File
 from starlette.exceptions import HTTPException
@@ -23,11 +24,13 @@ router = APIRouter()
 
 
 @router.get("/firmware/{filename}")
-async def download_file(filename: str):
+async def download_file(filename: str, request: Request):
+    logger.info(f"Incoming request headers: {request.headers}")
     file_path = os.path.join(FIRMWARE_FOLDER, filename)
     logger.info(f"Downloading {filename}")
     if os.path.exists(file_path):
-        return FileResponse(file_path, media_type='application/octet-stream', filename=filename)
+        return FileResponse(file_path, media_type='application/octet-stream', filename=filename,
+                            headers={"Content-Disposition": f"attachment; filename={filename}"})
     raise HTTPException(status_code=404, detail="File not found")
 
 

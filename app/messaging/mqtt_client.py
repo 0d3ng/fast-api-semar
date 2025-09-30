@@ -12,7 +12,7 @@ from app.schemas.token_schema import TokenDataDevice
 from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.services.server_service import ServerService
-from app.utils.config import ACCESS_TOKEN_SECRET, ENV
+from app.utils.config import ACCESS_TOKEN_SECRET, ENV, FIRMWARE_UPDATE_TOPIC
 from app.utils.encryption_tools import decrypt_cha_data
 from app.utils.logger import get_logger
 
@@ -53,6 +53,7 @@ async def on_connect_async(client, userdata, flags, rc):
             client.subscribe(topic_sub + device.code, qos=qos)
         client.subscribe(topic_sub_device, qos=qos)
         client.subscribe(topic_unsub_device, qos=qos)
+        client.subscribe(FIRMWARE_UPDATE_TOPIC, qos=qos)
     except Exception as e:
         logger.error(f"Error on_connect: {e}")
 

@@ -8,7 +8,7 @@ __pycache__/
 *.pyc
 *.pyo
 **/__pycache__/
-logs/*
-firmware/*
+logs/
+firmware/
 !logs/.gitkeep
 !firmware/.gitkeep

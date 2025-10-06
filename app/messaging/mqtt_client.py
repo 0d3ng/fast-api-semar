@@ -1,8 +1,10 @@
 # mqtt_client.py
 import asyncio
 import json
+import ssl
 from datetime import datetime
 
+import certifi
 import paho.mqtt.client as mqtt
 import pytz
 
@@ -122,7 +124,7 @@ async def process_sensor_data(client, data: SensorActuatorCreate, token: TokenDa
 async def start_mqtt_client():
     global mqtt_cli, server, running
     try:
-        server = await ServerService.get_server_config(protocol="mqtt", environment=ENV)
+        server = await ServerService.get_server_config(protocol="mqtts", environment=ENV)
         if not server:
             logger.error(".......................................")
             logger.error(f"Not any server configuration, please create first...")
@@ -144,7 +146,8 @@ async def start_mqtt_client():
         mqtt_cli.username_pw_set(server.parameters['username'], server.parameters['password'])
         mqtt_cli.on_connect = on_connect
         mqtt_cli.on_message = on_message
-        logger.info(f"connecting MQTT broker: {server.host} port: {server.ports['mqtt']}")
+        logger.info(f"connecting MQTT broker (TLS): {server.host} port: {server.ports['mqtt']}")
+        mqtt_cli.tls_set(ca_certs=certifi.where(),tls_version=ssl.PROTOCOL_TLS)
         mqtt_cli.connect(server.host, server.ports['mqtt'], server.parameters['keep_alive'])
         while running:
             mqtt_cli.loop(timeout=1)

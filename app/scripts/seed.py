@@ -232,25 +232,125 @@ async def seed_servers():
     try:
         # Connect to the database
         client = AsyncIOMotorClient(
-            f"mongodb://{os.getenv('MONGO_USER')}:{os.getenv('MONGO_PASS')}@{os.getenv('MONGO_HOST')}:{os.getenv('MONGO_PORT')}/{os.getenv('MONGO_DB')}?authSource=admin"
+            os.getenv("MONGO_URL")
         )
         database = client[os.getenv('MONGO_DB')]
         print(f"Database connection established")
 
         # Initial users data
+        # servers = [
+        #     {
+        #         "name": "MyMQTTServer",
+        #         "environment": "development",
+        #         "protocol": "mqtt",
+        #         "host": "127.0.0.1",
+        #         "ports": {
+        #             "mqtt": 1884,
+        #             "ws": 9001,
+        #         },
+        #         "parameters": {
+        #             "username": "uwais",
+        #             "password": "uwais",
+        #             "topics":
+        #                 {
+        #                     "publish": "data/response/",
+        #                     "subscribe": "data/sensor/",
+        #                     "subscribe_device": "data/device/sub/",
+        #                     "unsubscribe_device": "data/device/unsub/"
+        #                 },
+        #             "keep_alive": 60,
+        #             "qos": 1
+        #         },
+        #         "inserted_by": "seeder",
+        #         "inserted_at": datetime.now(tz=pytz.UTC),
+        #         "updated_by": None,
+        #         "updated_at": None,
+        #         "deleted_by": None,
+        #         "deleted_at": None
+        #     },
+        #     {
+        #         "name": "MyHTTPServer",
+        #         "environment": "development",
+        #         "protocol": "http",
+        #         "host": "127.0.0.1",
+        #         "ports": {
+        #             "http": 8001,
+        #             "https": 8002,
+        #         },
+        #         "parameters": {
+        #             "path": "/api/v1/",
+        #             "timeout": 30
+        #         },
+        #         "inserted_by": "seeder",
+        #         "inserted_at": datetime.now(tz=pytz.UTC),
+        #         "updated_by": None,
+        #         "updated_at": None,
+        #         "deleted_by": None,
+        #         "deleted_at": None
+        #     },
+        #     {
+        #         "name": "MyKafkaServer",
+        #         "environment": "production",
+        #         "protocol": "kafka",
+        #         "host": "kafka.example.com",
+        #         "ports": {
+        #             "http": 9002,
+        #             "ssl": 9003,
+        #         },
+        #         "parameters": {
+        #             "bootstrap_servers": [
+        #                 "kafka1.example.com:9092",
+        #                 "kafka2.example.com:9092"
+        #             ],
+        #             "topics": ["kafka_topic1", "kafka_topic2"],
+        #             "client_id": "kafka_client",
+        #             "group_id": "kafka_group"
+        #         },
+        #         "inserted_by": "seeder",
+        #         "inserted_at": datetime.now(tz=pytz.UTC),
+        #         "updated_by": None,
+        #         "updated_at": None,
+        #         "deleted_by": None,
+        #         "deleted_at": None
+        #     },
+        #     {
+        #         "name": "MyRabbitMQServer",
+        #         "environment": "production",
+        #         "protocol": "rabbitmq",
+        #         "host": "rabbitmq.example.com",
+        #         "ports": {
+        #             "http": 5672,
+        #             "ssl": 5673,
+        #         },
+        #         "parameters": {
+        #             "username": "rabbit_user",
+        #             "password": "rabbit_password",
+        #             "queues": ["queue1", "queue2"],
+        #             "exchange": "my_exchange",
+        #             "virtual_host": "/"
+        #         },
+        #         "inserted_by": "seeder",
+        #         "inserted_at": datetime.now(tz=pytz.UTC),
+        #         "updated_by": None,
+        #         "updated_at": None,
+        #         "deleted_by": None,
+        #         "deleted_at": None
+        #     }
+        # ]
+
         servers = [
             {
                 "name": "MyMQTTServer",
                 "environment": "development",
-                "protocol": "mqtt",
-                "host": "127.0.0.1",
+                "protocol": "mqtts",
+                "host": "ota.sinaungoding.com",
                 "ports": {
-                    "mqtt": 1884,
+                    "mqtt": 8883,
                     "ws": 9001,
                 },
                 "parameters": {
                     "username": "uwais",
-                    "password": "uwais",
+                    "password": "uw415_4Lqarn1",
                     "topics":
                         {
                             "publish": "data/response/",
@@ -260,74 +360,6 @@ async def seed_servers():
                         },
                     "keep_alive": 60,
                     "qos": 1
-                },
-                "inserted_by": "seeder",
-                "inserted_at": datetime.now(tz=pytz.UTC),
-                "updated_by": None,
-                "updated_at": None,
-                "deleted_by": None,
-                "deleted_at": None
-            },
-            {
-                "name": "MyHTTPServer",
-                "environment": "development",
-                "protocol": "http",
-                "host": "127.0.0.1",
-                "ports": {
-                    "http": 8001,
-                    "https": 8002,
-                },
-                "parameters": {
-                    "path": "/api/v1/",
-                    "timeout": 30
-                },
-                "inserted_by": "seeder",
-                "inserted_at": datetime.now(tz=pytz.UTC),
-                "updated_by": None,
-                "updated_at": None,
-                "deleted_by": None,
-                "deleted_at": None
-            },
-            {
-                "name": "MyKafkaServer",
-                "environment": "production",
-                "protocol": "kafka",
-                "host": "kafka.example.com",
-                "ports": {
-                    "http": 9002,
-                    "ssl": 9003,
-                },
-                "parameters": {
-                    "bootstrap_servers": [
-                        "kafka1.example.com:9092",
-                        "kafka2.example.com:9092"
-                    ],
-                    "topics": ["kafka_topic1", "kafka_topic2"],
-                    "client_id": "kafka_client",
-                    "group_id": "kafka_group"
-                },
-                "inserted_by": "seeder",
-                "inserted_at": datetime.now(tz=pytz.UTC),
-                "updated_by": None,
-                "updated_at": None,
-                "deleted_by": None,
-                "deleted_at": None
-            },
-            {
-                "name": "MyRabbitMQServer",
-                "environment": "production",
-                "protocol": "rabbitmq",
-                "host": "rabbitmq.example.com",
-                "ports": {
-                    "http": 5672,
-                    "ssl": 5673,
-                },
-                "parameters": {
-                    "username": "rabbit_user",
-                    "password": "rabbit_password",
-                    "queues": ["queue1", "queue2"],
-                    "exchange": "my_exchange",
-                    "virtual_host": "/"
                 },
                 "inserted_by": "seeder",
                 "inserted_at": datetime.now(tz=pytz.UTC),

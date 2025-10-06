@@ -25,10 +25,14 @@ def publish_message(topic, payload, server: ServerResponse, qos=1):
         client.username_pw_set(server.parameters['username'], server.parameters['password'])
         client.tls_set(ca_certs=certifi.where(), tls_version=ssl.PROTOCOL_TLS)
         client.connect(server.host, server.ports['mqtt'], server.parameters['keep_alive'])
+        client.loop_start()
         logger.info(f"publish data: {payload} with topic: {topic}")
-        client.publish(topic, payload, qos=qos)
+        result = client.publish(topic, payload, qos=qos)
+        result.wait_for_publish()
+        logger.info(f"publish successful!")
     except Exception as e:
         logger.error(e)
     finally:
+        client.loop_stop()
         if client.is_connected():
             client.disconnect()

@@ -55,7 +55,6 @@ async def on_connect_async(client, userdata, flags, rc):
             client.subscribe(topic_sub + device.code, qos=qos)
         client.subscribe(topic_sub_device, qos=qos)
         client.subscribe(topic_unsub_device, qos=qos)
-        client.subscribe(FIRMWARE_UPDATE_TOPIC, qos=qos)
     except Exception as e:
         logger.error(f"Error on_connect: {e}")
 

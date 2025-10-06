@@ -47,7 +47,7 @@ async def upload_file(file: UploadFile = File(...)):
             content = await file.read()
             f.write(content)
         logger.info(f"Uploaded {file.filename}")
-        server = await ServerService.get_server_config("mqtt", environment="development")
+        server = await ServerService.get_server_config("mqtts", environment="development")
         if server:
             qos = server.parameters['qos']
             publish_message(topic=FIRMWARE_UPDATE_TOPIC, payload="start", qos=qos, server=server)

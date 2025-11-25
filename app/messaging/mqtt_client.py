@@ -2,10 +2,13 @@
 import asyncio
 import json
 import ssl
+import struct
+import time
 from datetime import datetime
 
 import certifi
 import paho.mqtt.client as mqtt
+from Crypto.Cipher import AES
 import pytz
 
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate
@@ -29,6 +32,8 @@ topic_sub_device: str
 topic_unsub_device: str
 qos: int
 server: ServerResponse
+topic_binary="device/data/encrypted"
+topic_binary_response="device/data/decrypted/response"
 
 
 # Callback saat koneksi berhasil
@@ -55,6 +60,7 @@ async def on_connect_async(client, userdata, flags, rc):
             client.subscribe(topic_sub + device.code, qos=qos)
         client.subscribe(topic_sub_device, qos=qos)
         client.subscribe(topic_unsub_device, qos=qos)
+        client.subscribe(topic_binary, qos=qos)
     except Exception as e:
         logger.error(f"Error on_connect: {e}")
 
@@ -68,6 +74,102 @@ def on_connect(client, userdata, flags, rc):
 # Callback saat pesan diterima
 def on_message(client, userdata, msg):
     try:
+        if msg.topic == topic_binary:
+            # Start timing
+            start_time = time.perf_counter()
+
+            logger.info(f"Binary message received on topic: {msg.topic}")
+            # Handle binary message here
+            data = msg.payload
+            offset = 0
+
+            # Parse cipher_len (4 bytes, big-endian)
+            cipher_len = struct.unpack('>I', data[offset:offset + 4])[0]
+            offset += 4
+
+            # Parse cipher
+            cipher = data[offset:offset + cipher_len]
+            offset += cipher_len
+
+            # Parse tag (16 bytes)
+            tag = data[offset:offset + 16]
+            offset += 16
+
+            # Parse iv_len (1 byte)
+            iv_len = data[offset]
+            offset += 1
+
+            # Parse iv
+            iv = data[offset:offset + iv_len]
+            offset += iv_len
+
+            # Parse aad_len (2 bytes, big-endian)
+            aad_len = struct.unpack('>H', data[offset:offset + 2])[0]
+            offset += 2
+
+            # Parse aad
+            aad = data[offset:offset + aad_len] if aad_len > 0 else b''
+            offset += aad_len
+
+            # Parse key_len (1 byte)
+            key_len = data[offset]
+            offset += 1
+
+            # Parse payload_size (4 bytes, big-endian)
+            payload_size = struct.unpack('>I', data[offset:offset + 4])[0]
+
+            # Timing after parsing
+            parse_time = time.perf_counter()
+            parse_duration = (parse_time - start_time) * 1000  # Convert to milliseconds
+
+            logger.info(f"Received: cipher_len={cipher_len}, key_len={key_len * 8}, payload_size={payload_size}")
+            logger.info(f"Parsing took: {parse_duration:.3f} ms")
+
+            # Decrypt
+            key = bytes([0xA0 + i for i in range(key_len)])  # Match ESP32 key generation
+            aes_cipher = AES.new(key, AES.MODE_GCM, nonce=iv)
+            aes_cipher.update(aad)
+            plaintext = aes_cipher.decrypt_and_verify(cipher, tag)
+
+            # End timing
+            end_time = time.perf_counter()
+            decrypt_duration = (end_time - parse_time) * 1000  # Decryption time only
+            total_duration = (end_time - start_time) * 1000  # Total time
+
+            logger.info(f"Decrypted {len(plaintext)} bytes successfully!")
+            logger.info(f"Decryption took: {decrypt_duration:.3f} ms")
+            logger.info(f"Total time (receive decrypt): {total_duration:.3f} ms")
+
+            # Create response JSON
+            response_data = {
+                "status": "success",
+                "aes_info": {
+                    "mode": "GCM",
+                    "key_size": key_len * 8,  # in bits
+                    "iv_size": iv_len,
+                    "tag_size": len(tag),
+                    "cipher_size": cipher_len,
+                    "aad_size": aad_len
+                },
+                "performance": {
+                    "parse_duration_ms": round(parse_duration, 3),
+                    "decrypt_duration_ms": round(decrypt_duration, 3),
+                    "total_duration_ms": round(total_duration, 3)
+                },
+                "payload": {
+                    "original_size": payload_size,
+                    "decrypted_size": len(plaintext)
+                },
+                "timestamp": datetime.now(tz=pytz.UTC).isoformat()
+            }
+
+            # Publish response
+            response_json = json.dumps(response_data)
+            client.publish(topic=topic_binary_response, payload=response_json, qos=1)
+            logger.info(f"Response published to {topic_binary_response}")
+            logger.info(f"Response data: {response_json}")
+            return
+
         payload = msg.payload.decode('utf-8')
         logger.info(f"Message received: {payload} topic: {msg.topic}")
         if msg.topic in topic_devices:

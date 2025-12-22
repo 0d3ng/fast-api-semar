@@ -18,7 +18,7 @@ from starlette.responses import FileResponse, JSONResponse
 from app.messaging.mqtt_publisher import publish_message
 from app.services.server_service import ServerService
 from app.utils.logger import get_logger
-from app.utils.config import FIRMWARE_FOLDER, FIRMWARE_UPDATE_TOPIC
+from app.utils.config import FIRMWARE_FOLDER, FIRMWARE_UPDATE_TOPIC, ENV, MESSAGE_BROKER
 
 logger = get_logger(__name__)
 
@@ -47,7 +47,7 @@ async def upload_file(file: UploadFile = File(...)):
             content = await file.read()
             f.write(content)
         logger.info(f"Uploaded {file.filename}")
-        server = await ServerService.get_server_config("mqtts", environment="development")
+        server = await ServerService.get_server_config(protocol=MESSAGE_BROKER.lower(), environment=ENV)
         if server:
             qos = server.parameters['qos']
             publish_message(topic=FIRMWARE_UPDATE_TOPIC, payload="start", qos=qos, server=server)

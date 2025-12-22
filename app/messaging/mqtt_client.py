@@ -17,7 +17,7 @@ from app.schemas.token_schema import TokenDataDevice
 from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.services.server_service import ServerService
-from app.utils.config import ACCESS_TOKEN_SECRET, ENV, FIRMWARE_UPDATE_TOPIC
+from app.utils.config import ACCESS_TOKEN_SECRET, ENV, MESSAGE_BROKER
 from app.utils.encryption_tools import decrypt_cha_data
 from app.utils.logger import get_logger
 
@@ -225,7 +225,7 @@ async def process_sensor_data(client, data: SensorActuatorCreate, token: TokenDa
 async def start_mqtt_client():
     global mqtt_cli, server, running
     try:
-        server = await ServerService.get_server_config(protocol="mqtts", environment=ENV)
+        server = await ServerService.get_server_config(protocol=MESSAGE_BROKER.lower(), environment=ENV)
         if not server:
             logger.error(".......................................")
             logger.error(f"Not any server configuration, please create first...")
@@ -247,8 +247,11 @@ async def start_mqtt_client():
         mqtt_cli.username_pw_set(server.parameters['username'], server.parameters['password'])
         mqtt_cli.on_connect = on_connect
         mqtt_cli.on_message = on_message
-        logger.info(f"connecting MQTT broker (TLS): {server.host} port: {server.ports['mqtt']}")
-        mqtt_cli.tls_set(ca_certs=certifi.where(),tls_version=ssl.PROTOCOL_TLS)
+        if server.protocol == "mqtts":
+            logger.info(f"connecting MQTT broker (TLS): {server.host} port: {server.ports['mqtt']}")
+            mqtt_cli.tls_set(ca_certs=certifi.where(),tls_version=ssl.PROTOCOL_TLS)
+        else:
+            logger.info(f"connecting MQTT broker: {server.host} port: {server.ports['mqtt']}")
         mqtt_cli.connect(server.host, server.ports['mqtt'], server.parameters['keep_alive'])
         while running:
             mqtt_cli.loop(timeout=1)

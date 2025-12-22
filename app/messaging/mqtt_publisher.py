@@ -23,7 +23,8 @@ def publish_message(topic, payload, server: ServerResponse, qos=1):
     client = mqtt.Client()
     try:
         client.username_pw_set(server.parameters['username'], server.parameters['password'])
-        client.tls_set(ca_certs=certifi.where(), tls_version=ssl.PROTOCOL_TLS)
+        if server.protocol == 'mqtts':
+            client.tls_set(ca_certs=certifi.where(), tls_version=ssl.PROTOCOL_TLS)
         client.connect(server.host, server.ports['mqtt'], server.parameters['keep_alive'])
         client.loop_start()
         logger.info(f"publish data: {payload} with topic: {topic}")

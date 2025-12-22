@@ -28,3 +28,5 @@ DELAY_AMEDAS = int(os.getenv("DELAY_AMEDAS"))
 DELAY_TENKI = int(os.getenv("DELAY_TENKI"))
 
 ENV = os.getenv("ENV")
+
+MESSAGE_BROKER = os.getenv("MESSAGE_BROKER")

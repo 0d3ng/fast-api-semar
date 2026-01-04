@@ -9,6 +9,7 @@
 #   Description:
 #   """
 import os
+import zipfile
 from fastapi import Request
 
 from fastapi import APIRouter, UploadFile, File
@@ -39,14 +40,24 @@ async def download_file(filename: str, request: Request):
 @router.post("/firmware/upload")
 async def upload_file(file: UploadFile = File(...)):
     try:
-        # pastikan folder ada
+        # make sure folder exists
         os.makedirs(FIRMWARE_FOLDER, exist_ok=True)
         file_path = os.path.join(FIRMWARE_FOLDER, file.filename)
-        # simpan file
+        # save uploaded file
         with open(file_path, "wb") as f:
             content = await file.read()
             f.write(content)
         logger.info(f"Uploaded {file.filename}")
+        # extract if zip file
+        if file.filename.endswith(".zip"):
+            try:
+                with zipfile.ZipFile(file_path, 'r') as zip_ref:
+                    zip_ref.extractall(FIRMWARE_FOLDER)
+                logger.info(f"Extracted {file.filename} to {FIRMWARE_FOLDER}")
+            except zipfile.BadZipFile:
+                logger.error(f"Failed to extract {file.filename}: Not a zip file")
+                raise HTTPException(status_code=400, detail="Invalid zip file")
+        # Notify devices about firmware update
         server = await ServerService.get_server_config(protocol=MESSAGE_BROKER.lower(), environment=ENV)
         if server:
             qos = server.parameters['qos']

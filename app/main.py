@@ -26,6 +26,7 @@ from app.routes.k8s import kub_sensor_routes
 from app.routes.firmware import firmware_routes
 from app.scripts.amedas_scheduler import service_amedas_scheduler
 from app.scripts.tenki_scheduler import service_tenki_scheduler
+from app.utils.db import Database
 from app.utils.driver_manager import close_shared_driver
 from app.utils.logger import get_logger
 
@@ -65,6 +66,8 @@ def ping():
 @app.on_event("startup")
 async def startup():
     logger.info("Server starting up...")
+    await Database.init()
+
     asyncio.create_task(start_mqtt_client())
 
     asyncio.create_task(service_amedas_scheduler())

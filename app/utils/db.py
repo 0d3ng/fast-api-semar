@@ -8,8 +8,10 @@
 #  File: db.py
 #  Description:
 #  """
+import asyncio
 
 from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import PyMongoError
 
 from app.utils.config import MONGO_DB, MONGO_URL
 from app.utils.logger import get_logger
@@ -19,17 +21,24 @@ logger = get_logger(__name__)
 
 class Database:
     _client = None
+    _init_lock = asyncio.Lock()
 
     @staticmethod
-    def get_client():
-        if Database._client is None:
+    async def init():
+        async with Database._init_lock:
+            if Database._client is not None:
+                return Database._client
             try:
-                Database._client = AsyncIOMotorClient(MONGO_URL)
+                client = AsyncIOMotorClient(MONGO_URL)
+                await client.admin.command('ping')
                 logger.info(f"Connected to MongoDB - {MONGO_URL}")
-            except Exception as e:
+                Database._client = client
+                return client
+            except PyMongoError as e:
                 logger.error(f"Could not connect to MongoDB - {MONGO_URL}: {e}")
                 raise e
+    @staticmethod
+    async def get_client():
         return Database._client
-
 
 db = Database.get_client()[MONGO_DB]

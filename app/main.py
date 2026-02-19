@@ -65,8 +65,9 @@ def ping():
 
 @app.on_event("startup")
 async def startup():
+    global db
     logger.info("Server starting up...")
-    await Database.init()
+    db = await Database.init()
 
     asyncio.create_task(start_mqtt_client())
 

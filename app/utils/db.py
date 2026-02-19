@@ -18,27 +18,31 @@ from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-
 class Database:
     _client = None
+    _db = None
     _init_lock = asyncio.Lock()
 
     @staticmethod
     async def init():
         async with Database._init_lock:
             if Database._client is not None:
-                return Database._client
+                return Database._db
             try:
                 client = AsyncIOMotorClient(MONGO_URL)
-                await client.admin.command('ping')
+                await client.admin.command("ping")
                 logger.info(f"Connected to MongoDB - {MONGO_URL}")
                 Database._client = client
-                return client
+                Database._db = client[MONGO_DB]
+                return Database._db
             except PyMongoError as e:
                 logger.error(f"Could not connect to MongoDB - {MONGO_URL}: {e}")
                 raise e
-    @staticmethod
-    async def get_client():
-        return Database._client
 
-db = Database.get_client()[MONGO_DB]
+    @staticmethod
+    def get_db():
+        if Database._db is None:
+            raise RuntimeError("Database not initialized. Call Database.init() first.")
+        return Database._db
+
+db = None

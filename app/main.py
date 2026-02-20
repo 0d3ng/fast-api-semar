@@ -65,13 +65,10 @@ def ping():
 
 @app.on_event("startup")
 async def startup():
-    global db
     logger.info("Server starting up...")
-    db = await Database.init()
-
     asyncio.create_task(start_mqtt_client())
 
-    asyncio.create_task(service_amedas_scheduler())
+    # asyncio.create_task(service_amedas_scheduler())
     # the information about cedar pollen currently unavailable
     # asyncio.create_task(service_tenki_scheduler())
 

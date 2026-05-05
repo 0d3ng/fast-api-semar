@@ -191,9 +191,11 @@ class EdgeService:
                 if edge:
                     server = await ServerService.get_server_config(edge["protocol"], environment="development")
                     if server:
-                        topic = server.parameters['topics']['unsubscribe_device']
-                        qos = server.parameters['qos']
-                        publish_message(topic=topic, payload=edge["code"], qos=qos, server=server)
+                        if server.protocol != "http":
+                            topic = server.parameters['topics']['unsubscribe_device']
+                            qos = server.parameters['qos']
+                            publish_message(topic=topic, payload=edge["code"], qos=qos, server=server)
+                            return True
                         return True
                     raise HTTPException(status_code=404, detail="Server configuration not found")
                 raise HTTPException(status_code=404, detail="Edge not found")

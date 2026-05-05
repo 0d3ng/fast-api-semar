@@ -58,6 +58,13 @@ async def read_token(device_id: str, token: str = Depends(oauth2_scheme)):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
+@router.get("/tokens/edge/{edge_id}", response_model=TokenResponse)
+async def read_token_by_edge(edge_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await TokenService.get_token_by_edge(edge_id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
 @router.get("/tokens/", response_model=List[TokenResponse])
 async def read_tokens(token: str = Depends(oauth2_scheme)):

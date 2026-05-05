@@ -22,6 +22,7 @@ from app.models.token import Token
 from app.models.user import User
 from app.schemas.token_schema import TokenCreate, TokenResponse
 from app.services.device_service import DeviceService
+from app.services.edge_service import EdgeService
 from app.utils.db import db
 from app.utils.generator import calculate_minutes_between_dates
 from app.utils.logger import get_logger
@@ -113,6 +114,27 @@ class TokenService:
                 if not device:
                     raise HTTPException(status_code=404, detail="Device not found")
                 return TokenResponse(**token, device_name=device.name)
+            raise HTTPException(status_code=404, detail="Token not found")
+
+        except (KeyError, TypeError, Exception) as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def get_token_by_edge(edge_id: str):
+        try:
+
+            token = await db.tokens.find_one({
+                "device_id": edge_id,
+                "deleted_at": {"$eq": None},
+                "expires_at": {"$gte": datetime.now()}
+            })
+            if token:
+                edge = await EdgeService.get_edge(edge_id)
+                if not edge:
+                    raise HTTPException(status_code=404, detail="Edge not found")
+                return TokenResponse(**token, device_name=edge.name)
             raise HTTPException(status_code=404, detail="Token not found")
 
         except (KeyError, TypeError, Exception) as e:

@@ -64,7 +64,7 @@ class EdgeDataService:
         try:
             collection_name = "edge_data_" + device_code
             edge_data = []
-            cursor = await db[collection_name].find({}).sort("timestamp", 1)
+            cursor = db[collection_name].find({}).sort("timestamp", 1)
             async for sensor_data in cursor:
                 edge_data.append(EdgeDataResponse(**sensor_data))
             if edge_data:

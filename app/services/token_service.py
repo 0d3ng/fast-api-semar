@@ -41,14 +41,27 @@ class TokenService:
             minutes = calculate_minutes_between_dates(now, token.expires_at)
             logger.warn(f"token will be expired in {minutes} minutes")
             expire = timedelta(minutes=minutes)
-            device = await DeviceService.get_device(token.device_id)
-            if not device:
-                raise HTTPException(status_code=404, detail="Device not found")
+
+            # Coba cari device dulu
+            device = None
+            device_code = None
+            try:
+                device = await DeviceService.get_device(token.device_id)
+                device_code = device.code
+            except Exception:
+                # Device tidak ketemu, coba edge
+                try:
+                    edge = await EdgeService.get_edge(token.device_id)
+                    device = edge
+                    device_code = edge.code
+                except Exception:
+                    raise HTTPException(status_code=404, detail="Device or Edge not found")
+
             payload = {
                 "usr_id": str(user.id),
                 "username": user.username,
                 "dev_id": token.device_id,
-                "dev_code": device.code
+                "dev_code": device_code
             }
             access_token = create_access_token(data=payload, expires_delta=expire)
             new_token: Token = Token(
@@ -65,10 +78,8 @@ class TokenService:
             new_token_id = new_token_inserted.inserted_id
             if not new_token_id:
                 raise HTTPException(status_code=500, detail="Insert token fail")
-            device = await DeviceService.get_device(token.device_id)
-            if not device:
-                raise HTTPException(status_code=404, detail="Device not found")
-            logger.info(f"device: {device} type: {type(device)}")
+
+            logger.info(f"device/edge: {device} type: {type(device)}")
             return TokenResponse(_id=new_token_id,
                                  device_id=token.device_id,
                                  device_name=device.name,
@@ -90,10 +101,19 @@ class TokenService:
         try:
             token = await db.tokens.find_one({"_id": ObjectId(token_id)})
             if token:
-                device = await DeviceService.get_device(token["device_id"])
-                if not device:
-                    raise HTTPException(status_code=404, detail="Device not found")
-                return TokenResponse(**token, device_name=device.name)
+                device_name = None
+                try:
+                    device = await DeviceService.get_device(token["device_id"])
+                    device_name = device.name
+                except Exception:
+                    # Device tidak ketemu, coba edge
+                    try:
+                        edge = await EdgeService.get_edge(token["device_id"])
+                        device_name = edge.name
+                    except Exception:
+                        raise HTTPException(status_code=404, detail="Device or Edge not found")
+
+                return TokenResponse(**token, device_name=device_name)
             raise HTTPException(status_code=404, detail="Token not found")
         except (KeyError, TypeError, Exception) as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
@@ -153,11 +173,21 @@ class TokenService:
             cursor = db.tokens.find(filter)
             async for token in cursor:
                 logger.info(f"{token} {token["_id"]}")
-                device = await DeviceService.get_device(token["device_id"])
-                if not device:
-                    raise HTTPException(status_code=404, detail="Device not found")
-                token_response = TokenResponse(**token, device_name=device.name)
-                tokens.append(token_response)
+                device_found = False
+                try:
+                    device = await DeviceService.get_device(token["device_id"])
+                    token_response = TokenResponse(**token, device_name=device.name)
+                    tokens.append(token_response)
+                    device_found = True
+                except Exception:
+                    pass
+                if not device_found:
+                    try:
+                        edge = await EdgeService.get_edge(token["device_id"])
+                        token_response = TokenResponse(**token, device_name=edge.name)
+                        tokens.append(token_response)
+                    except Exception:
+                        logger.warning(f"Device and Edge not found for token {token['_id']}")
                 logger.info("")
             return tokens
 

@@ -27,13 +27,15 @@ credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                       headers={"WWW-Authenticate": "Bearer"})
 
 
-@router.post("/edge_data/", response_model=EdgeDataResponse)
+@router.post("/edge_data", response_model=EdgeDataResponse)
 async def create(sensor_data: EdgeDataCreate, token: str = Depends(oauth2_scheme)):
     try:
+        # logger.info(f"create data: {sensor_data} with token: {token}")
         token_data = verify_token(token=token, credentials_exception=credentials_exception, is_device=True)
         return await EdgeDataService.create_edge_data(sensor_data, token_data)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 @router.get("/edge_data/{edge_code}", response_model=List[EdgeDataResponse])
 async def read_edge_data(edge_code: str, token: str = Depends(oauth2_scheme)):
@@ -43,6 +45,7 @@ async def read_edge_data(edge_code: str, token: str = Depends(oauth2_scheme)):
         return await EdgeDataService.get_edge_all_data(edge_code)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 @router.get("/edge_data/{edge_code}/last", response_model=EdgeDataResponse)
 async def read_edge_data(edge_code: str, token: str = Depends(oauth2_scheme)):

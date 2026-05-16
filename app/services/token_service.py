@@ -127,7 +127,7 @@ class TokenService:
             token = await db.tokens.find_one({
                 "device_id": device_id,
                 "deleted_at": {"$eq": None},
-                "expires_at": {"$gte": datetime.now()}
+                "expires_at": {"$gte": datetime.now(tz=pytz.UTC)}
             })
             if token:
                 device = await DeviceService.get_device(device_id)
@@ -148,7 +148,7 @@ class TokenService:
             token = await db.tokens.find_one({
                 "device_id": edge_id,
                 "deleted_at": {"$eq": None},
-                "expires_at": {"$gte": datetime.now()}
+                "expires_at": {"$gte": datetime.now(tz=pytz.UTC)}
             })
             if token:
                 edge = await EdgeService.get_edge(edge_id)

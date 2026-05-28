@@ -123,12 +123,11 @@ class TokenService:
     @staticmethod
     async def get_token_by_device(device_id: str):
         try:
-
             token = await db.tokens.find_one({
                 "device_id": device_id,
                 "deleted_at": {"$eq": None},
                 "expires_at": {"$gte": datetime.now(tz=pytz.UTC)}
-            })
+            }, sort=[("inserted_at", -1)])
             if token:
                 device = await DeviceService.get_device(device_id)
                 if not device:
@@ -149,7 +148,7 @@ class TokenService:
                 "device_id": edge_id,
                 "deleted_at": {"$eq": None},
                 "expires_at": {"$gte": datetime.now(tz=pytz.UTC)}
-            })
+            }, sort=[("inserted_at", -1)])
             if token:
                 edge = await EdgeService.get_edge(edge_id)
                 if not edge:

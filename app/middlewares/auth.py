@@ -11,13 +11,20 @@
 
 import traceback
 from datetime import datetime, timedelta
+from functools import lru_cache
 
+import httpx
 import pytz
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from starlette import status
+
+bearer_scheme = HTTPBearer()
 
 from app.schemas.token_schema import TokenData, TokenDataDevice
-from app.utils.config import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET, ACCESS_TOKEN_SECRET
+from app.utils.config import ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_SECRET, ACCESS_TOKEN_SECRET, JWKS_URL
 from app.utils.encryption_tools import decrypt_cha_data, encrypt_cha_data
 from app.utils.logger import get_logger
 
@@ -114,3 +121,29 @@ def verify_token_enc(token: str):
         logger.error(f"{e}\n{tb_str}")
         raise Exception
     return token_data
+
+@lru_cache(maxsize=1)
+def get_keycloak_jwks() -> dict:
+    """Fetch public key dari Keycloak sekali saja — verifikasi JWT offline."""
+    response = httpx.get(JWKS_URL, timeout=10)
+    response.raise_for_status()
+    return response.json()
+
+def verify_keycloak_token(credentials = Depends(bearer_scheme)) -> dict:
+    """Dependency untuk endpoint yang diprotect Keycloak."""
+    try:
+        jwks = get_keycloak_jwks()
+        payload = jwt.decode(
+            credentials.credentials,
+            jwks,
+            algorithms=["RS256"],
+            options={"verify_aud": False}
+        )
+        return payload
+    except JWTError as e:
+        logger.error(f"Keycloak token error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token Keycloak tidak valid",
+            headers={"WWW-Authenticate": "Bearer"},
+        )

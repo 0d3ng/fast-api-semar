@@ -8,9 +8,10 @@
 #  File: kub_sensor_routes.py
 #  Description:
 #  """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from starlette import status
 
+from app.middlewares.auth import verify_keycloak_token
 from app.schemas.sensor_actuator_schema import SensorActuatorResponse, SensorActuatorCreate
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.utils.logger import get_logger
@@ -21,7 +22,8 @@ router = APIRouter()
 
 
 @router.post("/kub_sensors/", response_model=SensorActuatorResponse)
-async def create_sensor(sensor_data: SensorActuatorCreate):
+async def create_sensor(sensor_data: SensorActuatorCreate,
+                        payload:dict = Depends(verify_keycloak_token)):
     try:
         return await SensorActuatorService.create_sensor_data_without_token(sensor_data)
     except Exception as e:

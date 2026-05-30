@@ -29,3 +29,7 @@ DELAY_TENKI = int(os.getenv("DELAY_TENKI"))
 ENV = os.getenv("ENV")
 
 MESSAGE_BROKER = os.getenv("MESSAGE_BROKER")
+
+KEYCLOAK_URL   = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
+KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "semar")
+JWKS_URL       = f"{KEYCLOAK_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"

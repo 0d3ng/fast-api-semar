@@ -2,7 +2,7 @@
 app.*
 *.pem
 **/app.log
-.env
+#.env
 run.sh
 __pycache__/
 *.pyc

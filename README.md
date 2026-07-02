@@ -17,3 +17,6 @@ The python file in `ecc_tools.py`, type `export PYTHONPATH=$(pwd)` first
 
 ### Build image
 `docker build -t fast-api-semar:edge .`
+
+### Build image and push to docker hub
+`docker build -t 0d3ng/fast-api-semar:edge --push .`

@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-@router.post("/kub_sensors/", response_model=SensorActuatorResponse)
+@router.post("/kub_sensors", response_model=SensorActuatorResponse)
 async def create_sensor(sensor_data: SensorActuatorCreate):
     try:
         return await SensorActuatorService.create_sensor_data_without_token(sensor_data)

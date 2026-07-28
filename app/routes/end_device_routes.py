@@ -19,7 +19,7 @@ credentials_exception = HTTPException(
 )
 
 
-@router.post("/end-devices/", response_model=EndDeviceResponse)
+@router.post("/end-devices", response_model=EndDeviceResponse)
 async def create_end_device(end_device: EndDeviceCreateUpdate, token: str = Depends(oauth2_scheme)):
     try:
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
@@ -41,7 +41,7 @@ async def read_end_device(end_device_id: str, token: str = Depends(oauth2_scheme
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/end-devices/", response_model=List[EndDeviceResponse])
+@router.get("/end-devices", response_model=List[EndDeviceResponse])
 async def read_end_devices(
     platform_type: Optional[str] = Query(None),
     edge_ota_id: Optional[str] = Query(None),

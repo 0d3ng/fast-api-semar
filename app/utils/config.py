@@ -29,3 +29,11 @@ DELAY_TENKI = int(os.getenv("DELAY_TENKI"))
 ENV = os.getenv("ENV")
 
 MESSAGE_BROKER = os.getenv("MESSAGE_BROKER")
+
+GITHUB_DISPATCH_TOKEN = os.getenv("GITHUB_DISPATCH_TOKEN", "")
+SEMAR_API_TOKEN = os.getenv("SEMAR_API_TOKEN", "semar_secret_token")
+CICD_DISPATCH_MODE = os.getenv("CICD_DISPATCH_MODE", "stub")
+GITHUB_REPO_OWNER = os.getenv("GITHUB_REPO_OWNER", "0d3ng")
+GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME", "fast-api-semar")
+GITHUB_WORKFLOW_ID = os.getenv("GITHUB_WORKFLOW_ID", "key_rotation.yml")
+

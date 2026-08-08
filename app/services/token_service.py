@@ -23,6 +23,7 @@ from app.models.user import User
 from app.schemas.token_schema import TokenCreate, TokenResponse
 from app.services.device_service import DeviceService
 from app.services.edge_service import EdgeService
+from app.services.edge_ota_service import EdgeOtaService
 from app.utils.db import db
 from app.utils.generator import calculate_minutes_between_dates
 from app.utils.logger import get_logger
@@ -150,7 +151,14 @@ class TokenService:
                 "expires_at": {"$gte": datetime.now(tz=pytz.UTC)}
             }, sort=[("inserted_at", -1)])
             if token:
-                edge = await EdgeService.get_edge(edge_id)
+                edge = None
+                try:
+                    edge = await EdgeService.get_edge(edge_id)
+                except Exception:
+                    try:
+                        edge = await EdgeOtaService.get_edge_ota(edge_id)
+                    except Exception:
+                        pass
                 if not edge:
                     raise HTTPException(status_code=404, detail="Edge not found")
                 return TokenResponse(**token, device_name=edge.name)

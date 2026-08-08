@@ -1,3 +1,4 @@
+import time
 import traceback
 from datetime import datetime
 
@@ -5,11 +6,16 @@ import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 
+from app.messaging.mqtt_publisher import publish_message
+from app.middlewares.auth import create_token_enc, create_access_token
 from app.models.edge_ota import EdgeOta
+from app.models.token import Token
 from app.schemas.edge_ota_schema import EdgeOtaCreateUpdate, EdgeOtaResponse
 from app.schemas.token_schema import TokenData
+from app.services.server_service import ServerService
+from app.utils.config import ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
 from app.utils.db import db
-from app.utils.generator import generate_random_alphanumeric_hexa
+from app.utils.generator import generate_random_alphanumeric_hexa, add_day_to_date
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -20,6 +26,7 @@ class EdgeOtaService:
     async def create_edge_ota(edge_ota: EdgeOtaCreateUpdate, current_user: TokenData):
         try:
             now_utc = datetime.now(tz=pytz.UTC)
+            logger.info(edge_ota)
             new_edge_ota: EdgeOta = EdgeOta(
                 code=generate_random_alphanumeric_hexa(),
                 name=edge_ota.name,
@@ -33,23 +40,66 @@ class EdgeOtaService:
                 inserted_at=now_utc,
                 inserted_by=current_user.user_id
             )
+            logger.info(new_edge_ota)
             inserted = await db.edge_otas.insert_one(new_edge_ota.model_dump(by_alias=True))
             new_id = inserted.inserted_id
+            logger.info(f"{new_id} {type(new_id)}")
             if new_id:
-                return EdgeOtaResponse(
-                    _id=new_id,
-                    code=new_edge_ota.code,
+                future = add_day_to_date(days=int(ACCESS_TOKEN_EXPIRE_DEVICE_DAYS))
+                payload = {
+                    "usr_id": current_user.user_id,
+                    "dev_id": str(new_id),
+                    "dev_code": new_edge_ota.code,
+                    "exp": int(time.mktime(future.timetuple()))
+                }
+                protocol = getattr(edge_ota, "protocol", None)
+                if protocol == "mqtt":
+                    access_token = create_token_enc(payload=payload)
+                    server = await ServerService.get_server_config(protocol, environment="development")
+                    if server:
+                        topic = server.parameters['topics']['subscribe_device']
+                        qos = server.parameters['qos']
+                        publish_message(topic=topic, payload=new_edge_ota.code, qos=qos, server=server)
+                    else:
+                        logger.warning("Server configuration not found")
+                else:
+                    payload = {
+                        "usr_id": current_user.user_id,
+                        "username": current_user.username,
+                        "dev_id": str(new_id),
+                        "dev_code": new_edge_ota.code
+                    }
+                    access_token = create_access_token(data=payload)
+                new_token: Token = Token(
+                    device_id=str(new_id),
                     name=new_edge_ota.name,
-                    ip_address=new_edge_ota.ip_address,
-                    multicast_group=new_edge_ota.multicast_group,
-                    multicast_port=new_edge_ota.multicast_port,
+                    token=access_token,
                     description=new_edge_ota.description,
-                    status=new_edge_ota.status,
-                    project_id=new_edge_ota.project_id,
-                    active=new_edge_ota.active,
+                    expires_at=future,
                     inserted_at=now_utc,
                     inserted_by=current_user.user_id
                 )
+                logger.info(new_token)
+                new_token_inserted = await db.tokens.insert_one(new_token.model_dump(by_alias=True))
+                new_token_id = new_token_inserted.inserted_id
+                if new_token_id:
+                    logger.info(f"{new_token_id} {type(new_token_id)} created successfully")
+                    return EdgeOtaResponse(
+                        _id=new_id,
+                        code=new_edge_ota.code,
+                        name=new_edge_ota.name,
+                        ip_address=new_edge_ota.ip_address,
+                        multicast_group=new_edge_ota.multicast_group,
+                        multicast_port=new_edge_ota.multicast_port,
+                        description=new_edge_ota.description,
+                        status=new_edge_ota.status,
+                        project_id=new_edge_ota.project_id,
+                        active=new_edge_ota.active,
+                        inserted_at=now_utc,
+                        inserted_by=current_user.user_id
+                    )
+                else:
+                    raise HTTPException(status_code=500, detail="Create token fail")
             raise HTTPException(status_code=500, detail="Insert edge_ota failed")
         except Exception as e:
             logger.error(f"Failed to create edge_ota: {e}")

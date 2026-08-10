@@ -1,11 +1,11 @@
 services:
   semar-fast-api:
-    image: 0d3ng/fast-api-semar:edge
-    container_name: fast-api-container
+    image: 0d3ng/fast-api-semar:ota
+    container_name: fast-api-ota-container
     restart: on-failure
     pull_policy: always
     ports:
-      - 8002:8001
+      - 7002:8001
     volumes:
       - ./.env:/app/.env
       - ./logs:/app/logs/
@@ -18,15 +18,15 @@ services:
       start_period: 5s
 
   semar-web:
-    image: 0d3ng/web-semar-iot:edge
-    container_name: web-semar-container
+    image: 0d3ng/web-semar-iot:ota
+    container_name: web-semar-ota-container
     restart: on-failure
     pull_policy: always
     depends_on:
       semar-fast-api:
         condition: service_healthy
     ports:
-      - 8081:80
+      - 7081:80
     volumes:
       - ./.env-semar-web:/var/www/html/.env
     healthcheck:

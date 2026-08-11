@@ -56,7 +56,13 @@ class TokenService:
                     device = edge
                     device_code = edge.code
                 except Exception:
-                    raise HTTPException(status_code=404, detail="Device or Edge not found")
+                    # Edge tidak ketemu, coba edge_ota
+                    try:
+                        edge_ota = await EdgeOtaService.get_edge_ota(token.device_id)
+                        device = edge_ota
+                        device_code = edge_ota.code
+                    except Exception:
+                        raise HTTPException(status_code=404, detail="Device, Edge, or EdgeOta not found")
 
             payload = {
                 "usr_id": str(user.id),
@@ -112,7 +118,12 @@ class TokenService:
                         edge = await EdgeService.get_edge(token["device_id"])
                         device_name = edge.name
                     except Exception:
-                        raise HTTPException(status_code=404, detail="Device or Edge not found")
+                        # Edge tidak ketemu, coba edge_ota
+                        try:
+                            edge_ota = await EdgeOtaService.get_edge_ota(token["device_id"])
+                            device_name = edge_ota.name
+                        except Exception:
+                            raise HTTPException(status_code=404, detail="Device, Edge, or EdgeOta not found")
 
                 return TokenResponse(**token, device_name=device_name)
             raise HTTPException(status_code=404, detail="Token not found")
@@ -193,8 +204,16 @@ class TokenService:
                         edge = await EdgeService.get_edge(token["device_id"])
                         token_response = TokenResponse(**token, device_name=edge.name)
                         tokens.append(token_response)
+                        device_found = True
                     except Exception:
-                        logger.warning(f"Device and Edge not found for token {token['_id']}")
+                        pass
+                if not device_found:
+                    try:
+                        edge_ota = await EdgeOtaService.get_edge_ota(token["device_id"])
+                        token_response = TokenResponse(**token, device_name=edge_ota.name)
+                        tokens.append(token_response)
+                    except Exception:
+                        logger.warning(f"Device, Edge, and EdgeOta not found for token {token['_id']}")
                 logger.info("")
             return tokens
 

@@ -48,3 +48,10 @@ class FirmwareReleaseResponse(BaseModel):
         return v
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
+class LatestFirmwareReleaseResponse(BaseModel):
+    target_version: Optional[str] = None
+    type: Optional[str] = None
+    created_at: Optional[str] = None
+

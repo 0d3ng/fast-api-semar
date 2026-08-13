@@ -8,7 +8,7 @@ from bson import ObjectId
 from fastapi import HTTPException, UploadFile
 
 from app.models.firmware_release import FirmwareRelease
-from app.schemas.firmware_release_schema import FirmwareReleaseCreate, FirmwareReleaseResponse
+from app.schemas.firmware_release_schema import FirmwareReleaseCreate, FirmwareReleaseResponse, LatestFirmwareReleaseResponse
 from app.schemas.token_schema import TokenData
 from app.utils.config import FIRMWARE_FOLDER
 from app.utils.db import db
@@ -107,3 +107,35 @@ class FirmwareReleaseService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def get_latest_release(release_type: Optional[str] = None):
+        try:
+            query = {"deleted_at": None}
+            if release_type:
+                query["type"] = release_type
+
+            doc = await db.firmware_releases.find_one(query, sort=[("inserted_at", -1)])
+            if doc:
+                inserted_at = doc.get("inserted_at")
+                if isinstance(inserted_at, datetime):
+                    created_at_str = inserted_at.isoformat()
+                else:
+                    created_at_str = inserted_at
+
+                return LatestFirmwareReleaseResponse(
+                    target_version=doc.get("target_version"),
+                    type=doc.get("type"),
+                    created_at=created_at_str
+                )
+
+            return LatestFirmwareReleaseResponse(
+                target_version=None,
+                type=None,
+                created_at=None
+            )
+        except Exception as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+

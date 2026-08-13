@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from app.messaging.mqtt_publisher import publish_message
 from app.models.rotation_request import RotationRequest
-from app.schemas.rotation_request_schema import RotationRequestCreate, RotationRequestResponse, RotationRequestCicdCallback
+from app.schemas.rotation_request_schema import RotationRequestCreate, RotationRequestResponse, RotationRequestCicdCallback, CurrentKeyGenerationResponse
 from app.schemas.token_schema import TokenData
 from app.services.server_service import ServerService
 from app.utils.config import (
@@ -164,3 +164,19 @@ class RotationRequestService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def get_current_key_generation():
+        try:
+            doc = await db.rotation_requests.find_one(
+                {"new_key_generation": {"$ne": None}, "deleted_at": None},
+                sort=[("new_key_generation", -1)]
+            )
+            if doc and "new_key_generation" in doc and doc["new_key_generation"] is not None:
+                return CurrentKeyGenerationResponse(key_generation=doc["new_key_generation"])
+            return CurrentKeyGenerationResponse(key_generation=0)
+        except Exception as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+

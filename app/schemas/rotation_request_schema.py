@@ -20,6 +20,11 @@ class RotationRequestCicdCallback(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
+class CurrentKeyGenerationResponse(BaseModel):
+    key_generation: int
+
+
+
 class RotationRequestResponse(BaseModel):
     id: PydanticObjectId = Field(alias='_id')
     trigger_type: str

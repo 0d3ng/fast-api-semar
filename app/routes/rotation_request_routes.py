@@ -9,6 +9,7 @@ from app.schemas.rotation_request_schema import (
     RotationRequestCicdCallback,
     RotationRequestCreate,
     RotationRequestResponse,
+    CurrentKeyGenerationResponse,
 )
 from app.services.rotation_request_service import RotationRequestService
 from app.utils.config import SEMAR_API_TOKEN
@@ -85,3 +86,18 @@ async def cicd_callback(
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/key-generation/current", response_model=CurrentKeyGenerationResponse)
+async def get_current_key_generation(authorization: str = Header(...)):
+    try:
+        token_type, _, token_str = authorization.partition(" ")
+        if token_type.lower() != "bearer" or token_str != SEMAR_API_TOKEN:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid CI/CD token")
+
+        return await RotationRequestService.get_current_key_generation()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+

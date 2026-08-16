@@ -33,7 +33,7 @@ class FirmwareReleaseResponse(BaseModel):
     target_size: int
     key_generation: int
     signature: Any
-    file_path: Optional[str] = None
+    download_url: Optional[str] = None
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None
@@ -53,5 +53,7 @@ class FirmwareReleaseResponse(BaseModel):
 class LatestFirmwareReleaseResponse(BaseModel):
     target_version: Optional[str] = None
     type: Optional[str] = None
+    target_hash: Optional[str] = None
+    download_url: Optional[str] = None
     created_at: Optional[str] = None
 

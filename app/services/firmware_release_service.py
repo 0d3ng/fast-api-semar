@@ -49,7 +49,7 @@ class FirmwareReleaseService:
                 target_size=release_data.target_size,
                 key_generation=release_data.key_generation,
                 signature=release_data.signature,
-                file_path=saved_file_path,
+                file_path=file_name,
                 inserted_at=now_utc,
                 inserted_by=user_id
             )

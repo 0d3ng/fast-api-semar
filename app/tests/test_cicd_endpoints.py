@@ -24,7 +24,7 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_firmware_release_create_unauthorized(self):
-        response = client.post("/api/v1/firmware-releases/", data={"manifest": "{}"}, headers={"Authorization": "Bearer invalid_token"})
+        response = client.post("/api/v1/firmware-releases", data={"manifest": "{}"}, headers={"Authorization": "Bearer invalid_token"})
         self.assertEqual(response.status_code, 401)
 
     @patch("app.routes.firmware_release_routes.FirmwareReleaseService.create_release")
@@ -59,12 +59,21 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         }
         
         response = client.post(
-            "/api/v1/firmware-releases/",
+            "/api/v1/firmware-releases",
             data={"manifest": json.dumps(manifest_data)},
             headers={"Authorization": f"Bearer {SEMAR_API_TOKEN}"}
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["target_version"], "v1.2.3")
+
+    def test_firmware_release_download_success(self):
+        response = client.get("/api/v1/firmware-releases/download/test-v1_full_firmware.bin")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b"dummy firmware content for test-v1_full_firmware.bin\n")
+
+    def test_firmware_release_download_not_found(self):
+        response = client.get("/api/v1/firmware-releases/download/non_existent_firmware.bin")
+        self.assertEqual(response.status_code, 404)
 
 
     @patch("app.services.rotation_request_service.db")

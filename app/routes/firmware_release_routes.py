@@ -61,7 +61,7 @@ async def read_firmware_release(release_id: str, token: str = Depends(oauth2_sch
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.post("/firmware-releases/", response_model=FirmwareReleaseResponse)
+@router.post("/firmware-releases", response_model=FirmwareReleaseResponse)
 async def create_firmware_release(
     manifest: str = Form(...),
     file: Optional[UploadFile] = File(None),

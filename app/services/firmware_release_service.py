@@ -68,7 +68,7 @@ class FirmwareReleaseService:
                     target_size=new_release.target_size,
                     key_generation=new_release.key_generation,
                     signature=new_release.signature,
-                    file_path=saved_file_path,
+                    download_url=saved_file_path,
                     inserted_at=now_utc,
                     inserted_by=user_id
                 )
@@ -126,12 +126,16 @@ class FirmwareReleaseService:
                 return LatestFirmwareReleaseResponse(
                     target_version=doc.get("target_version"),
                     type=doc.get("type"),
+                    target_hash=doc.get("target_hash"),
+                    download_url=doc.get("file_path"),
                     created_at=created_at_str
                 )
 
             return LatestFirmwareReleaseResponse(
                 target_version=None,
                 type=None,
+                target_hash=None,
+                download_url=None,
                 created_at=None
             )
         except Exception as e:

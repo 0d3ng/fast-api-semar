@@ -65,10 +65,13 @@ async def read_firmware_release(release_id: str, token: str = Depends(oauth2_sch
 async def create_firmware_release(
     manifest: str = Form(...),
     file: Optional[UploadFile] = File(None),
-    token: str = Depends(oauth2_scheme)
+    authorization: str = Header(...)
 ):
     try:
-        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        token_type, _, token_str = authorization.partition(" ")
+        if token_type.lower() != "bearer" or token_str != SEMAR_API_TOKEN:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid CI/CD token")
+
         try:
             manifest_dict = json.loads(manifest)
             release_data = FirmwareReleaseCreate(**manifest_dict)
@@ -78,7 +81,7 @@ async def create_firmware_release(
         return await FirmwareReleaseService.create_release(
             release_data=release_data,
             file=file,
-            user_id=token_data.user_id
+            user_id="system"
         )
     except HTTPException:
         raise

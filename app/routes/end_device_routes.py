@@ -41,6 +41,18 @@ async def read_end_device(end_device_id: str, token: str = Depends(oauth2_scheme
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@router.get("/end-devices/edge-ota/{edge_ota_id}", response_model=EndDeviceResponse)
+async def read_end_device_by_edge_ota(edge_ota_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        verify_token(token=token, credentials_exception=credentials_exception)
+        return await EndDeviceService.get_end_device_by_edge_ota_id(edge_ota_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+
 @router.get("/end-devices", response_model=List[EndDeviceResponse])
 async def read_end_devices(
     platform_type: Optional[str] = Query(None),

@@ -99,13 +99,29 @@ async def create_firmware_release(
 
 
 @router.get("/firmware-releases/download/{filename}")
-async def download_firmware_release_file(filename: str):
-    file_path = os.path.join(FIRMWARE_FOLDER, "ota", filename)
-    if os.path.exists(file_path):
-        return FileResponse(
-            file_path,
-            media_type='application/octet-stream',
-            filename=filename,
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-    raise HTTPException(status_code=404, detail="File not found")
+async def download_firmware_release_file(filename: str, authorization: str = Header(...)):
+    try:
+        token_type, _, token_str = authorization.partition(" ")
+        if token_type.lower() != "bearer":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+            
+        if token_str != SEMAR_API_TOKEN:
+            try:
+                verify_token(token=token_str, credentials_exception=credentials_exception)
+            except Exception:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid CI/CD or JWT token")
+
+        file_path = os.path.join(FIRMWARE_FOLDER, "ota", filename)
+        if os.path.exists(file_path):
+            return FileResponse(
+                file_path,
+                media_type='application/octet-stream',
+                filename=filename,
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        raise HTTPException(status_code=404, detail="File not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+

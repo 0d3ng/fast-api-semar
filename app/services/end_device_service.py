@@ -73,6 +73,21 @@ class EndDeviceService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
+    async def get_end_device_by_edge_ota_id(edge_ota_id: str):
+        try:
+            doc = await db.end_devices.find_one({"edge_ota_id": edge_ota_id, "deleted_at": None})
+            if doc:
+                return EndDeviceResponse(**doc)
+            raise HTTPException(status_code=404, detail="EndDevice with given edge_ota_id not found")
+        except HTTPException:
+            raise
+        except Exception as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+
+    @staticmethod
     async def get_all_end_devices(
         platform_type: Optional[str] = None,
         edge_ota_id: Optional[str] = None,

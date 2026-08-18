@@ -42,8 +42,14 @@ async def read_latest_firmware_release(
 ):
     try:
         token_type, _, token_str = authorization.partition(" ")
-        if token_type.lower() != "bearer" or token_str != SEMAR_API_TOKEN:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid CI/CD token")
+        if token_type.lower() != "bearer":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+            
+        if token_str != SEMAR_API_TOKEN:
+            try:
+                verify_token(token=token_str, credentials_exception=credentials_exception)
+            except Exception:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid CI/CD or JWT token")
 
         return await FirmwareReleaseService.get_latest_release(release_type=type, platform_type=platform_type)
     except HTTPException:

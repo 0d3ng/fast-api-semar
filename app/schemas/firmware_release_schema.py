@@ -54,9 +54,15 @@ class FirmwareReleaseResponse(BaseModel):
 
 class LatestFirmwareReleaseResponse(BaseModel):
     target_version: Optional[str] = None
+    base_version: Optional[str] = None
     type: Optional[str] = None
     platform_type: Optional[str] = None
     target_hash: Optional[str] = None
+    delta_hash: Optional[str] = None
+    delta_algorithm: Optional[str] = None
+    delta_size: Optional[int] = None
+    target_size: Optional[int] = None
+    key_generation: Optional[int] = None
+    signature: Any = None
     download_url: Optional[str] = None
-    created_at: Optional[str] = None
 

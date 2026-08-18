@@ -121,29 +121,22 @@ class FirmwareReleaseService:
 
             doc = await db.firmware_releases.find_one(query, sort=[("inserted_at", -1)])
             if doc:
-                inserted_at = doc.get("inserted_at")
-                if isinstance(inserted_at, datetime):
-                    created_at_str = inserted_at.isoformat()
-                else:
-                    created_at_str = inserted_at
-
                 return LatestFirmwareReleaseResponse(
                     target_version=doc.get("target_version"),
+                    base_version=doc.get("base_version"),
                     type=doc.get("type"),
                     platform_type=doc.get("platform_type"),
                     target_hash=doc.get("target_hash"),
-                    download_url=doc.get("file_path"),
-                    created_at=created_at_str
+                    delta_hash=doc.get("delta_hash"),
+                    delta_algorithm=doc.get("delta_algorithm"),
+                    delta_size=doc.get("delta_size"),
+                    target_size=doc.get("target_size"),
+                    key_generation=doc.get("key_generation"),
+                    signature=doc.get("signature"),
+                    download_url=doc.get("file_path")
                 )
 
-            return LatestFirmwareReleaseResponse(
-                target_version=None,
-                type=None,
-                platform_type=None,
-                target_hash=None,
-                download_url=None,
-                created_at=None
-            )
+            return LatestFirmwareReleaseResponse()
         except Exception as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")

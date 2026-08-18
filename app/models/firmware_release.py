@@ -11,6 +11,7 @@ class FirmwareRelease(BaseModel):
     target_version: str
     base_version: Optional[str] = None
     type: str
+    platform_type: str
     target_hash: str
     delta_hash: Optional[str] = None
     delta_algorithm: Optional[str] = None

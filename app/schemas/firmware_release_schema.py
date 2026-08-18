@@ -10,6 +10,7 @@ class FirmwareReleaseCreate(BaseModel):
     target_version: str
     base_version: Optional[str] = None
     type: str
+    platform_type: str
     target_hash: str
     delta_hash: Optional[str] = None
     delta_algorithm: Optional[str] = None
@@ -26,6 +27,7 @@ class FirmwareReleaseResponse(BaseModel):
     target_version: str
     base_version: Optional[str] = None
     type: str
+    platform_type: str
     target_hash: str
     delta_hash: Optional[str] = None
     delta_algorithm: Optional[str] = None
@@ -53,6 +55,7 @@ class FirmwareReleaseResponse(BaseModel):
 class LatestFirmwareReleaseResponse(BaseModel):
     target_version: Optional[str] = None
     type: Optional[str] = None
+    platform_type: Optional[str] = None
     target_hash: Optional[str] = None
     download_url: Optional[str] = None
     created_at: Optional[str] = None

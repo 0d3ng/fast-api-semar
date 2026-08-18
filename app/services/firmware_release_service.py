@@ -42,6 +42,7 @@ class FirmwareReleaseService:
                 target_version=release_data.target_version,
                 base_version=release_data.base_version,
                 type=release_data.type,
+                platform_type=release_data.platform_type,
                 target_hash=release_data.target_hash,
                 delta_hash=release_data.delta_hash,
                 delta_algorithm=release_data.delta_algorithm,
@@ -61,6 +62,7 @@ class FirmwareReleaseService:
                     target_version=new_release.target_version,
                     base_version=new_release.base_version,
                     type=new_release.type,
+                    platform_type=new_release.platform_type,
                     target_hash=new_release.target_hash,
                     delta_hash=new_release.delta_hash,
                     delta_algorithm=new_release.delta_algorithm,
@@ -109,11 +111,13 @@ class FirmwareReleaseService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_latest_release(release_type: Optional[str] = None):
+    async def get_latest_release(release_type: Optional[str] = None, platform_type: Optional[str] = None):
         try:
             query = {"deleted_at": None}
             if release_type:
                 query["type"] = release_type
+            if platform_type:
+                query["platform_type"] = platform_type
 
             doc = await db.firmware_releases.find_one(query, sort=[("inserted_at", -1)])
             if doc:
@@ -126,6 +130,7 @@ class FirmwareReleaseService:
                 return LatestFirmwareReleaseResponse(
                     target_version=doc.get("target_version"),
                     type=doc.get("type"),
+                    platform_type=doc.get("platform_type"),
                     target_hash=doc.get("target_hash"),
                     download_url=doc.get("file_path"),
                     created_at=created_at_str
@@ -134,6 +139,7 @@ class FirmwareReleaseService:
             return LatestFirmwareReleaseResponse(
                 target_version=None,
                 type=None,
+                platform_type=None,
                 target_hash=None,
                 download_url=None,
                 created_at=None

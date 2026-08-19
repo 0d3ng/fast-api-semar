@@ -125,3 +125,30 @@ async def download_firmware_release_file(filename: str, authorization: str = Hea
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+
+@router.post("/firmware-releases/{target_version}/broadcast")
+async def broadcast_firmware_release(
+    target_version: str,
+    platform_type: str = Query(...),
+    authorization: str = Header(...)
+):
+    try:
+        token_type, _, token_str = authorization.partition(" ")
+        if token_type.lower() != "bearer":
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
+            
+        if token_str != SEMAR_API_TOKEN:
+            try:
+                verify_token(token=token_str, credentials_exception=credentials_exception)
+            except Exception:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid CI/CD or JWT token")
+
+        return await FirmwareReleaseService.broadcast_firmware(
+            target_version=target_version,
+            platform_type=platform_type,
+            user_id="system"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

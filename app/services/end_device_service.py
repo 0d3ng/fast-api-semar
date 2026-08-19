@@ -154,3 +154,24 @@ class EndDeviceService:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def count_end_devices(
+        edge_ota_id: Optional[str] = None,
+        platform_type: Optional[str] = None,
+        user_id: Optional[str] = None
+    ) -> int:
+        try:
+            query = {"deleted_at": None}
+            if user_id:
+                query["inserted_by"] = user_id
+            if platform_type:
+                query["platform_type"] = platform_type
+            if edge_ota_id:
+                query["edge_ota_id"] = edge_ota_id
+
+            return await db.end_devices.count_documents(query)
+        except Exception as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))

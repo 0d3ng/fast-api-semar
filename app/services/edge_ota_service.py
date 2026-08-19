@@ -122,12 +122,14 @@ class EdgeOtaService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def get_all_edge_otas(user_id: str = None):
+    async def get_all_edge_otas(user_id: str = None, active: Optional[bool] = None):
         try:
             edges = []
             filter_query = {"deleted_at": None}
             if user_id:
                 filter_query["inserted_by"] = user_id
+            if active is not None:
+                filter_query["active"] = active
             cursor = db.edge_otas.find(filter_query)
             async for doc in cursor:
                 edges.append(EdgeOtaResponse(**doc))

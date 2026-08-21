@@ -224,7 +224,7 @@ class FirmwareReleaseService:
                     if not group_devices or not release:
                         continue
 
-                    session_id = session_id = int(time.time() * 1000) & 0xFFFFFFFF
+                    session_id = int(time.time() * 1000) & 0xFFFFFFFF
 
                     session_data = UpdateSessionCreate(
                         session_id=session_id,

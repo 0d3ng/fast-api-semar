@@ -8,7 +8,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 class UpdateSession(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
-    session_id: Any
+    session_id: str
     type: str  # delta | rotation | full
     platform_type: Optional[str] = None
     target_version: Optional[str] = None

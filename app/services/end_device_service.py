@@ -1,6 +1,6 @@
 import traceback
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 import pytz
 from bson import ObjectId
@@ -86,6 +86,34 @@ class EndDeviceService:
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
+
+    @staticmethod
+    async def get_end_devices(
+        edge_ota_id: Optional[str] = None,
+        platform_type: Optional[str] = None,
+        status: Optional[str] = None,
+        user_id: Optional[str] = None
+    ) -> List[EndDeviceResponse]:
+        try:
+            query = {"deleted_at": None}
+            if user_id:
+                query["inserted_by"] = user_id
+            if edge_ota_id:
+                query["edge_ota_id"] = edge_ota_id
+            if platform_type:
+                query["platform_type"] = platform_type
+            if status:
+                query["status"] = status
+
+            devices = []
+            cursor = db.end_devices.find(query)
+            async for doc in cursor:
+                devices.append(EndDeviceResponse(**doc))
+            return devices
+        except Exception as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
     async def get_all_end_devices(

@@ -22,11 +22,14 @@ class UpdateSessionService:
         try:
             now_utc = datetime.now(tz=pytz.UTC)
             new_session: UpdateSession = UpdateSession(
-                session_id=session_data.session_id,
+                session_id=str(session_data.session_id),
                 type=session_data.type,
+                platform_type=session_data.platform_type,
+                target_version=session_data.target_version,
                 firmware_release_id=session_data.firmware_release_id,
                 rotation_request_id=session_data.rotation_request_id,
                 target_edge_ota_id=session_data.target_edge_ota_id,
+                target_device_ids=session_data.target_device_ids,
                 status=session_data.status or "preparing",
                 started_at=now_utc,
                 inserted_at=now_utc,
@@ -57,7 +60,13 @@ class UpdateSessionService:
     @staticmethod
     async def get_session(session_id: str):
         try:
-            doc = await db.update_sessions.find_one({"_id": ObjectId(session_id), "deleted_at": None})
+            query = {"deleted_at": None}
+            if ObjectId.is_valid(session_id):
+                query["$or"] = [{"_id": ObjectId(session_id)}, {"session_id": session_id}]
+            else:
+                query["session_id"] = session_id
+
+            doc = await db.update_sessions.find_one(query)
             if doc:
                 return UpdateSessionResponse(**doc)
             raise HTTPException(status_code=404, detail="UpdateSession not found")
@@ -82,15 +91,161 @@ class UpdateSessionService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
+    async def get_pending_sessions(edge_id: str, target_version: str):
+        try:
+            from app.services.firmware_release_service import FirmwareReleaseService
+            from app.services.edge_ota_service import EdgeOtaService
+            from app.services.end_device_service import EndDeviceService
+
+            # 1. Resolve edge identifier via EdgeOtaService
+            target_edge_ids = [edge_id]
+            edge_obj = None
+            try:
+                edge_obj = await EdgeOtaService.get_edge_ota(edge_id)
+                if edge_obj:
+                    target_edge_ids.append(str(edge_obj.id))
+                    if edge_obj.code:
+                        target_edge_ids.append(edge_obj.code)
+            except HTTPException:
+                pass
+            target_edge_ids = list(set(target_edge_ids))
+
+            # 2. Find releases matching target_version via FirmwareReleaseService
+            releases = await FirmwareReleaseService.get_releases_by_target_and_platform(
+                target_version=target_version
+            )
+            if not releases:
+                return {"sessions": []}
+
+            release_map = {str(r.id): r for r in releases}
+            release_ids = list(release_map.keys())
+
+            # 3. Find pending update sessions for this edge and target releases
+            sessions_query = {
+                "target_edge_ota_id": {"$in": target_edge_ids},
+                "status": {"$in": ["pending", "preparing"]},
+                "firmware_release_id": {"$in": release_ids},
+                "deleted_at": None
+            }
+            sessions_cursor = db.update_sessions.find(sessions_query)
+            sessions = []
+            async for s in sessions_cursor:
+                sessions.append(s)
+
+            result_sessions = []
+            for session in sessions:
+                release_doc = release_map.get(session.get("firmware_release_id"))
+                if not release_doc:
+                    continue
+
+                raw_session_id = session.get("session_id")
+                try:
+                    session_id_val = int(raw_session_id)
+                except (ValueError, TypeError):
+                    session_id_val = raw_session_id
+
+                manifest = {
+                    "target_version": release_doc.target_version,
+                    "base_version": release_doc.base_version,
+                    "type": release_doc.type,
+                    "platform_type": release_doc.platform_type,
+                    "target_hash": release_doc.target_hash,
+                    "delta_hash": release_doc.delta_hash,
+                    "delta_algorithm": release_doc.delta_algorithm,
+                    "delta_size": release_doc.delta_size,
+                    "target_size": release_doc.target_size,
+                    "key_generation": release_doc.key_generation,
+                    "signature": release_doc.signature,
+                    "file_path":release_doc.file_path
+                }
+                manifest = {k: v for k, v in manifest.items() if v is not None}
+
+                # 4. Fetch target device IDs via EndDeviceService or existing session field
+                if session.get("target_device_ids"):
+                    target_device_ids = session.get("target_device_ids")
+                else:
+                    target_edge_key = str(edge_obj.id) if (edge_obj and edge_obj.id) else edge_id
+                    devices = await EndDeviceService.get_end_devices(
+                        edge_ota_id=target_edge_key,
+                        platform_type=release_doc.platform_type
+                    )
+
+                    if release_doc.type == "delta" and release_doc.base_version:
+                        matched_devices = [
+                            d for d in devices
+                            if d.current_firmware_version == release_doc.base_version
+                        ]
+                        if matched_devices:
+                            devices = matched_devices
+
+                    target_device_ids = [
+                        str(d.code or d.id) for d in devices
+                    ]
+
+                result_sessions.append({
+                    "session_id": session_id_val,
+                    "type": session.get("type") or release_doc.type,
+                    "manifest": manifest,
+                    "target_device_ids": target_device_ids
+                })
+
+            return {"sessions": result_sessions}
+        except Exception as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def update_session_status(session_id: str, new_status: str, user_id: str):
+        try:
+            now_utc = datetime.now(tz=pytz.UTC)
+            query = {"deleted_at": None}
+            if ObjectId.is_valid(session_id):
+                query["$or"] = [{"_id": ObjectId(session_id)}, {"session_id": session_id}]
+            else:
+                query["session_id"] = session_id
+
+            session = await db.update_sessions.find_one(query)
+            if not session:
+                raise HTTPException(status_code=404, detail="UpdateSession not found")
+
+            update_fields = {
+                "status": new_status,
+                "updated_at": now_utc,
+                "updated_by": user_id
+            }
+
+            await db.update_sessions.update_one(
+                {"_id": session["_id"]},
+                {"$set": update_fields}
+            )
+
+            updated_doc = await db.update_sessions.find_one({"_id": session["_id"]})
+            return UpdateSessionResponse(**updated_doc)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to update session status: {e}")
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
     async def add_session_ack(session_id: str, ack_data: SessionAckCreate, user_id: str):
         try:
             now_utc = datetime.now(tz=pytz.UTC)
-            session = await db.update_sessions.find_one({"_id": ObjectId(session_id), "deleted_at": None})
+            query = {"deleted_at": None}
+            if ObjectId.is_valid(session_id):
+                query["$or"] = [{"_id": ObjectId(session_id)}, {"session_id": session_id}]
+            else:
+                query["session_id"] = session_id
+
+            session = await db.update_sessions.find_one(query)
             if not session:
                 raise HTTPException(status_code=404, detail="UpdateSession not found")
 
             new_ack: SessionAck = SessionAck(
-                update_session_id=session_id,
+                update_session_id=str(session["_id"]),
                 end_device_id=ack_data.end_device_id,
                 acked_at=now_utc,
                 status=ack_data.status,
@@ -111,7 +266,7 @@ class UpdateSessionService:
 
                 return SessionAckResponse(
                     _id=new_id,
-                    update_session_id=session_id,
+                    update_session_id=str(session["_id"]),
                     end_device_id=ack_data.end_device_id,
                     acked_at=now_utc,
                     status=ack_data.status,

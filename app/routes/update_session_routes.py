@@ -1,12 +1,17 @@
 from typing import List
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.security import OAuth2PasswordBearer
-from starlette import status
+from starlette import status as http_status
 
 from app.middlewares.auth import verify_token
 from app.schemas.session_ack_schema import SessionAckCreate, SessionAckResponse
-from app.schemas.update_session_schema import UpdateSessionCreate, UpdateSessionResponse
+from app.schemas.update_session_schema import (
+    UpdateSessionCreate,
+    UpdateSessionResponse,
+    UpdateSessionStatusUpdate,
+    PendingSessionsResponse,
+)
 from app.services.update_session_service import UpdateSessionService
 from app.utils.logger import get_logger
 
@@ -14,7 +19,7 @@ logger = get_logger(__name__)
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 credentials_exception = HTTPException(
-    status_code=status.HTTP_401_UNAUTHORIZED,
+    status_code=http_status.HTTP_401_UNAUTHORIZED,
     detail="Could not validate credentials",
     headers={"WWW-Authenticate": "Bearer"}
 )
@@ -28,7 +33,22 @@ async def read_update_sessions(token: str = Depends(oauth2_scheme)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/update-sessions/pending", response_model=PendingSessionsResponse)
+async def get_pending_update_sessions(
+    edge_id: str = Query(..., description="ID or Code of Edge OTA"),
+    target_version: str = Query(..., description="Target firmware version"),
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        verify_token(token=token, credentials_exception=credentials_exception)
+        return await UpdateSessionService.get_pending_sessions(edge_id=edge_id, target_version=target_version)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.get("/update-sessions/{session_id}", response_model=UpdateSessionResponse)
@@ -39,7 +59,7 @@ async def read_update_session(session_id: str, token: str = Depends(oauth2_schem
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.post("/update-sessions/", response_model=UpdateSessionResponse)
@@ -50,7 +70,25 @@ async def create_update_session(session_data: UpdateSessionCreate, token: str = 
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.put("/update-sessions/{session_id}/status", response_model=UpdateSessionResponse)
+@router.patch("/update-sessions/{session_id}/status", response_model=UpdateSessionResponse)
+@router.put("/update-sessions/{session_id}", response_model=UpdateSessionResponse)
+@router.patch("/update-sessions/{session_id}", response_model=UpdateSessionResponse)
+async def update_session_status(
+    session_id: str,
+    status_data: UpdateSessionStatusUpdate,
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await UpdateSessionService.update_session_status(session_id, status_data.status, token_data.user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.post("/update-sessions/{session_id}/acks", response_model=SessionAckResponse)
@@ -61,4 +99,4 @@ async def create_session_ack(session_id: str, ack_data: SessionAckCreate, token:
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

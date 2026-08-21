@@ -1,3 +1,4 @@
+from typing import Optional
 import time
 import traceback
 from datetime import datetime
@@ -110,7 +111,12 @@ class EdgeOtaService:
     @staticmethod
     async def get_edge_ota(edge_ota_id: str):
         try:
-            doc = await db.edge_otas.find_one({"_id": ObjectId(edge_ota_id), "deleted_at": None})
+            query = {"deleted_at": None}
+            if ObjectId.is_valid(edge_ota_id):
+                query["$or"] = [{"_id": ObjectId(edge_ota_id)}, {"code": edge_ota_id}]
+            else:
+                query["code"] = edge_ota_id
+            doc = await db.edge_otas.find_one(query)
             if doc:
                 return EdgeOtaResponse(**doc)
             raise HTTPException(status_code=404, detail="EdgeOta not found")

@@ -175,7 +175,7 @@ class FirmwareReleaseService:
     @staticmethod
     async def broadcast_firmware(target_version: str, platform_type: str, user_id: str):
         try:
-            # 1. Query firmware releases via service method
+            # 1. Query firmware releases
             releases = await FirmwareReleaseService.get_releases_by_target_and_platform(
                 target_version=target_version,
                 platform_type=platform_type
@@ -183,10 +183,15 @@ class FirmwareReleaseService:
             if not releases:
                 raise HTTPException(status_code=404, detail="Firmware releases not found")
 
-            # 2. Query active edge OTAs via EdgeOtaService
-            edges = await EdgeOtaService.get_all_edge_otas(active=True)
+            full_release = next((r for r in releases if r.type == "full"), None)
+            delta_release = next((r for r in releases if r.type == "delta"), None)
+            if not full_release:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No 'full' release found for this target_version/platform_type"
+                )
 
-            # 3. Get server config via ServerService
+            edges = await EdgeOtaService.get_all_edge_otas(active=True)
             server = await ServerService.get_server_config(MESSAGE_BROKER, environment=ENV)
             if not server:
                 logger.warning("MQTT Server configuration not found")
@@ -197,46 +202,64 @@ class FirmwareReleaseService:
             for edge in edges:
                 edge_id = str(edge.id)
 
-                # 4. Count end devices via EndDeviceService
-                device_count = await EndDeviceService.count_end_devices(
+                # 2. Fetch device AKTUAL (bukan cuma count), biar bisa isi target_device_ids
+                devices = await EndDeviceService.get_end_devices(
                     edge_ota_id=edge_id,
                     platform_type=platform_type
                 )
+                if not devices:
+                    continue
 
-                if device_count > 0:
-                    for release in releases:
-                        release_type = release.type
-                        session_id = str(int(time.time()))
+                # 3. SPLIT device ke grup delta-eligible vs full-needed
+                delta_group, full_group = [], []
+                for device in devices:
+                    if delta_release and device.current_firmware_version == delta_release.base_version:
+                        delta_group.append(str(device.id))
+                    else:
+                        full_group.append(str(device.id))
 
-                        # 5. Insert UpdateSession via UpdateSessionService
-                        session_data = UpdateSessionCreate(
-                            session_id=session_id,
-                            type=release_type,
-                            firmware_release_id=str(release.id),
-                            target_edge_ota_id=edge_id,
-                            status="preparing"
-                        )
+                edge_has_session = False
 
-                        await UpdateSessionService.create_session(session_data, sys_token)
+                for group_devices, release in [(delta_group, delta_release), (full_group, full_release)]:
+                    if not group_devices or not release:
+                        continue
 
-                        sessions_created.append({
-                            "session_id": int(session_id),
-                            "edge_id": edge_id,
-                            "type": release_type,
-                            "device_count": device_count
-                        })
+                    session_id = session_id = int(time.time() * 1000) & 0xFFFFFFFF
 
-                        # 6. Publish MQTT message
-                        if server:
-                            payload = json.dumps({
-                                "session_id": session_id,
-                                "type": release_type,
-                                "target_version": target_version,
-                                "target_edge_ota_id": edge_id
-                            })
-                            publish_message(topic=FIRMWARE_UPDATE_TOPIC, payload=payload, qos=server.parameters['qos'], server=server)
+                    session_data = UpdateSessionCreate(
+                        session_id=session_id,
+                        type=release.type,
+                        platform_type=platform_type,
+                        target_version=target_version,
+                        firmware_release_id=str(release.id),
+                        target_edge_ota_id=edge_id,
+                        target_device_ids=group_devices,   # <-- diisi sekarang
+                        status="pending"
+                    )
+                    await UpdateSessionService.create_session(session_data, sys_token)
 
-                        time.sleep(1)
+                    sessions_created.append({
+                        "session_id": session_id,
+                        "edge_id": edge_id,
+                        "type": release.type,
+                        "device_count": len(group_devices)
+                    })
+                    edge_has_session = True
+
+                # 4. MQTT publish SEKALI per edge, SETELAH kedua grup diproses
+                if edge_has_session and server:
+                    payload = json.dumps({
+                        "type": "firmware_update",
+                        "edge_id": edge_id,
+                        "target_version": target_version,
+                        "platform_type": platform_type
+                    })
+                    publish_message(
+                        topic=FIRMWARE_UPDATE_TOPIC,
+                        payload=payload,
+                        qos=server.parameters['qos'],
+                        server=server
+                    )
 
             return {
                 "target_version": target_version,

@@ -156,7 +156,7 @@ class UpdateSessionService:
                     "target_size": release_doc.target_size,
                     "key_generation": release_doc.key_generation,
                     "signature": release_doc.signature,
-                    "file_path":release_doc.file_path
+                    "file_path":release_doc.file_name
                 }
                 manifest = {k: v for k, v in manifest.items() if v is not None}
 

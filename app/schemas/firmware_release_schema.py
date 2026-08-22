@@ -35,7 +35,7 @@ class FirmwareReleaseResponse(BaseModel):
     target_size: int
     key_generation: int
     signature: Any
-    download_url: Optional[str] = None
+    file_name: Optional[str] = Field(default=None, alias='file_path')
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None
@@ -49,7 +49,7 @@ class FirmwareReleaseResponse(BaseModel):
             return v.isoformat()
         return v
 
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
 
 
 class LatestFirmwareReleaseResponse(BaseModel):
@@ -64,5 +64,7 @@ class LatestFirmwareReleaseResponse(BaseModel):
     target_size: Optional[int] = None
     key_generation: Optional[int] = None
     signature: Any = None
-    download_url: Optional[str] = None
+    file_name: Optional[str] = Field(default=None, alias='file_path')
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, populate_by_name=True)
 

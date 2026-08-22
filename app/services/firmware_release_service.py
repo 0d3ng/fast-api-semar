@@ -81,7 +81,7 @@ class FirmwareReleaseService:
                     target_size=new_release.target_size,
                     key_generation=new_release.key_generation,
                     signature=new_release.signature,
-                    download_url=saved_file_path,
+                    file_name=file_name,
                     inserted_at=now_utc,
                     inserted_by=user_id
                 )
@@ -163,7 +163,7 @@ class FirmwareReleaseService:
                     target_size=doc.get("target_size"),
                     key_generation=doc.get("key_generation"),
                     signature=doc.get("signature"),
-                    download_url=doc.get("file_path")
+                    file_name=doc.get("file_path")
                 )
 
             return LatestFirmwareReleaseResponse()

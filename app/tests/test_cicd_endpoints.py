@@ -35,6 +35,7 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
             target_version="v1.2.3",
             base_version="v1.2.2",
             type="full",
+            platform_type="esp32",
             target_hash="hash",
             target_size=100,
             key_generation=1,
@@ -52,6 +53,7 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
             "target_version": "v1.2.3",
             "base_version": "v1.2.2",
             "type": "full",
+            "platform_type": "esp32",
             "target_hash": "hash",
             "target_size": 100,
             "key_generation": 1,
@@ -67,12 +69,18 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.json()["target_version"], "v1.2.3")
 
     def test_firmware_release_download_success(self):
-        response = client.get("/api/v1/firmware-releases/download/test-v1_full_firmware.bin")
+        response = client.get(
+            "/api/v1/firmware-releases/download/test-v1_full_firmware.bin",
+            headers={"Authorization": f"Bearer {SEMAR_API_TOKEN}"}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, b"dummy firmware content for test-v1_full_firmware.bin\n")
 
     def test_firmware_release_download_not_found(self):
-        response = client.get("/api/v1/firmware-releases/download/non_existent_firmware.bin")
+        response = client.get(
+            "/api/v1/firmware-releases/download/non_existent_firmware.bin",
+            headers={"Authorization": f"Bearer {SEMAR_API_TOKEN}"}
+        )
         self.assertEqual(response.status_code, 404)
 
 
@@ -95,22 +103,23 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         mock_db.firmware_releases.find_one = AsyncMock(return_value={
             "target_version": "v1.2.3",
             "type": "full",
+            "platform_type": "esp32",
             "inserted_at": "2026-08-12T10:00:00Z"
         })
-        res = await FirmwareReleaseService.get_latest_release(release_type="full")
+        res = await FirmwareReleaseService.get_latest_release(release_type="full", platform_type="esp32")
         self.assertIsInstance(res, LatestFirmwareReleaseResponse)
         self.assertEqual(res.target_version, "v1.2.3")
         self.assertEqual(res.type, "full")
-        self.assertEqual(res.created_at, "2026-08-12T10:00:00Z")
+        self.assertEqual(res.platform_type, "esp32")
 
     @patch("app.services.firmware_release_service.db")
     async def test_get_latest_release_none(self, mock_db):
         mock_db.firmware_releases.find_one = AsyncMock(return_value=None)
-        res = await FirmwareReleaseService.get_latest_release(release_type="full")
+        res = await FirmwareReleaseService.get_latest_release(release_type="full", platform_type="esp32")
         self.assertIsInstance(res, LatestFirmwareReleaseResponse)
         self.assertIsNone(res.target_version)
         self.assertIsNone(res.type)
-        self.assertIsNone(res.created_at)
+        self.assertIsNone(res.platform_type)
 
 
 if __name__ == '__main__':

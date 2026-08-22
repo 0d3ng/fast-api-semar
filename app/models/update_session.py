@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Any, Union, List
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -8,7 +8,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 class UpdateSession(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
-    session_id: str
+    session_id: Union[int, str, Any]
     type: str  # delta | rotation | full
     platform_type: Optional[str] = None
     target_version: Optional[str] = None

@@ -220,6 +220,42 @@ class UpdateSessionService:
                 {"$set": update_fields}
             )
 
+            # If session marked as completed, update end devices firmware version & key generation
+            if new_status == "completed" and session.get("target_device_ids"):
+                device_ids = session.get("target_device_ids")
+                object_ids = [ObjectId(d) for d in device_ids if ObjectId.is_valid(d)]
+                codes = [d for d in device_ids if not ObjectId.is_valid(d)]
+
+                device_query_or = []
+                if object_ids:
+                    device_query_or.append({"_id": {"$in": object_ids}})
+                if codes:
+                    device_query_or.append({"code": {"$in": codes}})
+
+                if device_query_or:
+                    device_update = {
+                        "last_update_at": now_utc,
+                        "updated_at": now_utc,
+                        "updated_by": user_id
+                    }
+                    if session.get("target_version"):
+                        device_update["current_firmware_version"] = session.get("target_version")
+
+                    if session.get("firmware_release_id") and ObjectId.is_valid(session.get("firmware_release_id")):
+                        release_doc = await db.ota_firmware_releases.find_one({"_id": ObjectId(session.get("firmware_release_id"))})
+                        if release_doc and release_doc.get("key_generation") is not None:
+                            device_update["current_key_generation"] = release_doc.get("key_generation")
+
+                    if session.get("rotation_request_id") and ObjectId.is_valid(session.get("rotation_request_id")):
+                        rotation_doc = await db.ota_rotation_requests.find_one({"_id": ObjectId(session.get("rotation_request_id"))})
+                        if rotation_doc and rotation_doc.get("new_key_generation") is not None:
+                            device_update["current_key_generation"] = rotation_doc.get("new_key_generation")
+
+                    await db.ota_end_devices.update_many(
+                        {"deleted_at": None, "$or": device_query_or},
+                        {"$set": device_update}
+                    )
+
             updated_doc = await db.ota_update_sessions.find_one({"_id": session["_id"]})
             return UpdateSessionResponse(**updated_doc)
         except HTTPException:
@@ -253,15 +289,39 @@ class UpdateSessionService:
                 inserted_at=now_utc,
                 inserted_by=user_id
             )
-            inserted = await db.session_acks.insert_one(new_ack.model_dump(by_alias=True))
+            inserted = await db.ota_session_acks.insert_one(new_ack.model_dump(by_alias=True))
             new_id = inserted.inserted_id
 
             if new_id:
-                # Update EndDevice last_update_at if status success
+                # Update EndDevice last_update_at and current_firmware_version if status success
                 if ack_data.status == "success":
+                    device_update = {
+                        "last_update_at": now_utc,
+                        "updated_at": now_utc,
+                        "updated_by": user_id
+                    }
+                    if session.get("target_version"):
+                        device_update["current_firmware_version"] = session.get("target_version")
+
+                    if session.get("firmware_release_id") and ObjectId.is_valid(session.get("firmware_release_id")):
+                        release_doc = await db.ota_firmware_releases.find_one({"_id": ObjectId(session.get("firmware_release_id"))})
+                        if release_doc and release_doc.get("key_generation") is not None:
+                            device_update["current_key_generation"] = release_doc.get("key_generation")
+
+                    if session.get("rotation_request_id") and ObjectId.is_valid(session.get("rotation_request_id")):
+                        rotation_doc = await db.ota_rotation_requests.find_one({"_id": ObjectId(session.get("rotation_request_id"))})
+                        if rotation_doc and rotation_doc.get("new_key_generation") is not None:
+                            device_update["current_key_generation"] = rotation_doc.get("new_key_generation")
+
+                    device_query = {"deleted_at": None}
+                    if ObjectId.is_valid(ack_data.end_device_id):
+                        device_query["$or"] = [{"_id": ObjectId(ack_data.end_device_id)}, {"code": ack_data.end_device_id}]
+                    else:
+                        device_query["code"] = ack_data.end_device_id
+
                     await db.ota_end_devices.update_one(
-                        {"_id": ObjectId(ack_data.end_device_id)},
-                        {"$set": {"last_update_at": now_utc}}
+                        device_query,
+                        {"$set": device_update}
                     )
 
                 return SessionAckResponse(

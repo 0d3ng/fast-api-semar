@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any
 
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 
@@ -7,7 +7,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 
 class OtaTelemetryCreate(BaseModel):
-    session_id: Union[int, str, Any]
+    session_id: str
     device_id: str
     stage: str
     metrics: Dict[str, Any] = {}
@@ -18,7 +18,7 @@ class OtaTelemetryCreate(BaseModel):
 
 class OtaTelemetryResponse(BaseModel):
     id: PydanticObjectId = Field(alias='_id')
-    session_id: Union[int, str, Any]
+    session_id: str
     device_id: str
     stage: str
     metrics: Dict[str, Any] = {}

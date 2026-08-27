@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Dict, Any, Union
+from typing import Optional, Dict, Any
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -8,7 +8,7 @@ from app.utils.custom_fields import PydanticObjectId
 
 class OtaTelemetry(BaseModel):
     id: Optional[PydanticObjectId] = Field(alias='_id', default_factory=PydanticObjectId)
-    session_id: Union[int, str, Any]
+    session_id: str
     device_id: str
     stage: str  # manifest | downloading | verification | etc.
     metrics: Dict[str, Any] = {}

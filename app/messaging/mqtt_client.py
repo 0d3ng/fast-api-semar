@@ -17,7 +17,10 @@ from app.schemas.token_schema import TokenDataDevice
 from app.services.device_service import DeviceService
 from app.services.sensor_actuator_service import SensorActuatorService
 from app.services.server_service import ServerService
-from app.utils.config import ACCESS_TOKEN_SECRET, ENV, MESSAGE_BROKER
+from app.services.ota_telemetry_service import OtaTelemetryService
+from app.schemas.ota_telemetry_schema import OtaTelemetryCreate
+
+from app.utils.config import OTA_TELEMETRY_TOPIC, ACCESS_TOKEN_SECRET, ENV, MESSAGE_BROKER
 from app.utils.encryption_tools import decrypt_cha_data
 from app.utils.logger import get_logger
 
@@ -61,6 +64,8 @@ async def on_connect_async(client, userdata, flags, rc):
         client.subscribe(topic_sub_device, qos=qos)
         client.subscribe(topic_unsub_device, qos=qos)
         client.subscribe(topic_binary, qos=qos)
+        client.subscribe(OTA_TELEMETRY_TOPIC, qos=qos)
+        logger.info(f'Subscribed to OTA telemetry topic: {OTA_TELEMETRY_TOPIC}')
     except Exception as e:
         logger.error(f"Error on_connect: {e}")
 
@@ -191,6 +196,15 @@ def on_message(client, userdata, msg):
                 asyncio.create_task(process_sensor_data(client, dt, token_dev))
             except Exception as e:
                 logger.warning(f"Warning on_message: {e}")
+        elif msg.topic == OTA_TELEMETRY_TOPIC:
+            try:
+                raw_payload = msg.payload.decode('utf-8')
+                logger.info(f"Received OTA telemetry payload: {raw_payload}")
+                payload_data = json.loads(raw_payload)
+                telemetry_create = OtaTelemetryCreate(**payload_data)
+                asyncio.create_task(OtaTelemetryService.create_telemetry(telemetry_create))
+            except Exception as e:
+                logger.error(f"Failed to process OTA telemetry on {msg.topic}: {e}")
         elif msg.topic == topic_sub_device:
             device_code = payload
             client.subscribe(topic_sub + device_code, qos=1)

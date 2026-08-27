@@ -36,4 +36,4 @@ CICD_DISPATCH_MODE = os.getenv("CICD_DISPATCH_MODE", "stub")
 GITHUB_REPO_OWNER = os.getenv("GITHUB_REPO_OWNER", "0d3ng")
 GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME", "fast-api-semar")
 GITHUB_WORKFLOW_ID = os.getenv("GITHUB_WORKFLOW_ID", "key_rotation.yml")
-
+OTA_TELEMETRY_TOPIC = os.getenv("OTA_TELEMETRY_TOPIC", "semar/ota/telemetry")

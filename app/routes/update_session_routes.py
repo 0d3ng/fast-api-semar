@@ -1,3 +1,5 @@
+from app.schemas.ota_telemetry_schema import OtaTelemetryResponse
+from app.services.ota_telemetry_service import OtaTelemetryService
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends, Query
@@ -100,3 +102,15 @@ async def create_session_ack(session_id: str, ack_data: SessionAckCreate, token:
         raise
     except Exception as e:
         raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/update-sessions/{session_id}/telemetries", response_model=List[OtaTelemetryResponse])
+@router.get("/update-sessions/{session_id}/telemetry", response_model=List[OtaTelemetryResponse])
+async def get_session_telemetry(session_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        verify_token(token=token, credentials_exception=credentials_exception)
+        return await OtaTelemetryService.get_telemetry_by_session(session_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+

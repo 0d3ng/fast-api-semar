@@ -6,8 +6,8 @@ import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 
-from app.models.end_device import EndDevice
-from app.schemas.end_device_schema import EndDeviceCreateUpdate, EndDeviceResponse
+from app.models.ota_end_device import EndDevice
+from app.schemas.ota_end_device_schema import EndDeviceCreateUpdate, EndDeviceResponse
 from app.schemas.token_schema import TokenData
 from app.utils.db import db
 from app.utils.generator import generate_random_alphanumeric_hexa
@@ -33,7 +33,7 @@ class EndDeviceService:
                 inserted_at=now_utc,
                 inserted_by=current_user.user_id
             )
-            inserted = await db.end_devices.insert_one(new_device.model_dump(by_alias=True))
+            inserted = await db.ota_end_devices.insert_one(new_device.model_dump(by_alias=True))
             new_id = inserted.inserted_id
             if new_id:
                 return EndDeviceResponse(
@@ -61,7 +61,7 @@ class EndDeviceService:
     @staticmethod
     async def get_end_device(end_device_id: str):
         try:
-            doc = await db.end_devices.find_one({"_id": ObjectId(end_device_id), "deleted_at": None})
+            doc = await db.ota_end_devices.find_one({"_id": ObjectId(end_device_id), "deleted_at": None})
             if doc:
                 return EndDeviceResponse(**doc)
             raise HTTPException(status_code=404, detail="EndDevice not found")
@@ -75,7 +75,7 @@ class EndDeviceService:
     @staticmethod
     async def get_end_device_by_edge_ota_id(edge_ota_id: str):
         try:
-            doc = await db.end_devices.find_one({"edge_ota_id": edge_ota_id, "deleted_at": None})
+            doc = await db.ota_end_devices.find_one({"edge_ota_id": edge_ota_id, "deleted_at": None})
             if doc:
                 return EndDeviceResponse(**doc)
             raise HTTPException(status_code=404, detail="EndDevice with given edge_ota_id not found")
@@ -106,7 +106,7 @@ class EndDeviceService:
                 query["status"] = status
 
             devices = []
-            cursor = db.end_devices.find(query)
+            cursor = db.ota_end_devices.find(query)
             async for doc in cursor:
                 devices.append(EndDeviceResponse(**doc))
             return devices
@@ -133,7 +133,7 @@ class EndDeviceService:
 
             if outdated:
                 # Find active key generation from rotation requests or firmware releases
-                latest_release = await db.firmware_releases.find_one(
+                latest_release = await db.ota_firmware_releases.find_one(
                     {"deleted_at": None},
                     sort=[("key_generation", -1)]
                 )
@@ -141,7 +141,7 @@ class EndDeviceService:
                 query["current_key_generation"] = {"$lt": active_key_gen}
 
             devices = []
-            cursor = db.end_devices.find(query)
+            cursor = db.ota_end_devices.find(query)
             async for doc in cursor:
                 devices.append(EndDeviceResponse(**doc))
             return devices
@@ -157,7 +157,7 @@ class EndDeviceService:
             update_data = {k: v for k, v in update_data_in.model_dump(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = now_utc
             update_data["updated_by"] = current_user
-            result = await db.end_devices.update_one({"_id": ObjectId(end_device_id), "deleted_at": None}, {"$set": update_data})
+            result = await db.ota_end_devices.update_one({"_id": ObjectId(end_device_id), "deleted_at": None}, {"$set": update_data})
             if result.matched_count == 1:
                 return await EndDeviceService.get_end_device(end_device_id)
             return None
@@ -174,7 +174,7 @@ class EndDeviceService:
                 "deleted_at": now_utc,
                 "deleted_by": current_user
             }
-            result = await db.end_devices.update_one({"_id": ObjectId(end_device_id)}, {"$set": update_data})
+            result = await db.ota_end_devices.update_one({"_id": ObjectId(end_device_id)}, {"$set": update_data})
             if result.matched_count == 1:
                 return True
             return False
@@ -198,7 +198,7 @@ class EndDeviceService:
             if edge_ota_id:
                 query["edge_ota_id"] = edge_ota_id
 
-            return await db.end_devices.count_documents(query)
+            return await db.ota_end_devices.count_documents(query)
         except Exception as e:
             tb_str = "".join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")

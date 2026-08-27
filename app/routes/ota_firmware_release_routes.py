@@ -8,8 +8,8 @@ from starlette import status
 from starlette.responses import FileResponse
 
 from app.middlewares.auth import verify_token
-from app.schemas.firmware_release_schema import FirmwareReleaseResponse, FirmwareReleaseCreate, LatestFirmwareReleaseResponse
-from app.services.firmware_release_service import FirmwareReleaseService
+from app.schemas.ota_firmware_release_schema import FirmwareReleaseResponse, FirmwareReleaseCreate, LatestFirmwareReleaseResponse
+from app.services.ota_firmware_release_service import FirmwareReleaseService
 from app.utils.config import SEMAR_API_TOKEN, FIRMWARE_FOLDER
 from app.utils.logger import get_logger
 

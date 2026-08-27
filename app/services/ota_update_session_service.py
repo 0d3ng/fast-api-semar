@@ -5,11 +5,11 @@ import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 
-from app.models.session_ack import SessionAck
-from app.models.update_session import UpdateSession
-from app.schemas.session_ack_schema import SessionAckCreate, SessionAckResponse
+from app.models.ota_session_ack import SessionAck
+from app.models.ota_update_session import UpdateSession
+from app.schemas.ota_session_ack_schema import SessionAckCreate, SessionAckResponse
 from app.schemas.token_schema import TokenData
-from app.schemas.update_session_schema import UpdateSessionCreate, UpdateSessionResponse
+from app.schemas.ota_update_session_schema import UpdateSessionCreate, UpdateSessionResponse
 from app.utils.db import db
 from app.utils.logger import get_logger
 
@@ -35,7 +35,7 @@ class UpdateSessionService:
                 inserted_at=now_utc,
                 inserted_by=current_user.user_id
             )
-            inserted = await db.update_sessions.insert_one(new_session.model_dump(by_alias=True))
+            inserted = await db.ota_update_sessions.insert_one(new_session.model_dump(by_alias=True))
             new_id = inserted.inserted_id
             if new_id:
                 return UpdateSessionResponse(
@@ -66,7 +66,7 @@ class UpdateSessionService:
             else:
                 query["session_id"] = session_id
 
-            doc = await db.update_sessions.find_one(query)
+            doc = await db.ota_update_sessions.find_one(query)
             if doc:
                 return UpdateSessionResponse(**doc)
             raise HTTPException(status_code=404, detail="UpdateSession not found")
@@ -81,7 +81,7 @@ class UpdateSessionService:
     async def get_all_sessions():
         try:
             sessions = []
-            cursor = db.update_sessions.find({"deleted_at": None})
+            cursor = db.ota_update_sessions.find({"deleted_at": None})
             async for doc in cursor:
                 sessions.append(UpdateSessionResponse(**doc))
             return sessions
@@ -93,9 +93,9 @@ class UpdateSessionService:
     @staticmethod
     async def get_pending_sessions(edge_id: str, target_version: str):
         try:
-            from app.services.firmware_release_service import FirmwareReleaseService
-            from app.services.edge_ota_service import EdgeOtaService
-            from app.services.end_device_service import EndDeviceService
+            from app.services.ota_firmware_release_service import FirmwareReleaseService
+            from app.services.ota_edge_service import EdgeOtaService
+            from app.services.ota_end_device_service import EndDeviceService
 
             # 1. Resolve edge identifier via EdgeOtaService
             target_edge_ids = [edge_id]
@@ -127,7 +127,7 @@ class UpdateSessionService:
                 "firmware_release_id": {"$in": release_ids},
                 "deleted_at": None
             }
-            sessions_cursor = db.update_sessions.find(sessions_query)
+            sessions_cursor = db.ota_update_sessions.find(sessions_query)
             sessions = []
             async for s in sessions_cursor:
                 sessions.append(s)
@@ -205,7 +205,7 @@ class UpdateSessionService:
             else:
                 query["session_id"] = session_id
 
-            session = await db.update_sessions.find_one(query)
+            session = await db.ota_update_sessions.find_one(query)
             if not session:
                 raise HTTPException(status_code=404, detail="UpdateSession not found")
 
@@ -215,12 +215,12 @@ class UpdateSessionService:
                 "updated_by": user_id
             }
 
-            await db.update_sessions.update_one(
+            await db.ota_update_sessions.update_one(
                 {"_id": session["_id"]},
                 {"$set": update_fields}
             )
 
-            updated_doc = await db.update_sessions.find_one({"_id": session["_id"]})
+            updated_doc = await db.ota_update_sessions.find_one({"_id": session["_id"]})
             return UpdateSessionResponse(**updated_doc)
         except HTTPException:
             raise
@@ -240,7 +240,7 @@ class UpdateSessionService:
             else:
                 query["session_id"] = session_id
 
-            session = await db.update_sessions.find_one(query)
+            session = await db.ota_update_sessions.find_one(query)
             if not session:
                 raise HTTPException(status_code=404, detail="UpdateSession not found")
 
@@ -259,7 +259,7 @@ class UpdateSessionService:
             if new_id:
                 # Update EndDevice last_update_at if status success
                 if ack_data.status == "success":
-                    await db.end_devices.update_one(
+                    await db.ota_end_devices.update_one(
                         {"_id": ObjectId(ack_data.end_device_id)},
                         {"$set": {"last_update_at": now_utc}}
                     )

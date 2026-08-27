@@ -7,14 +7,14 @@ from fastapi.security import OAuth2PasswordBearer
 from starlette import status as http_status
 
 from app.middlewares.auth import verify_token
-from app.schemas.session_ack_schema import SessionAckCreate, SessionAckResponse
-from app.schemas.update_session_schema import (
+from app.schemas.ota_session_ack_schema import SessionAckCreate, SessionAckResponse
+from app.schemas.ota_update_session_schema import (
     UpdateSessionCreate,
     UpdateSessionResponse,
     UpdateSessionStatusUpdate,
     PendingSessionsResponse,
 )
-from app.services.update_session_service import UpdateSessionService
+from app.services.ota_update_session_service import UpdateSessionService
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)

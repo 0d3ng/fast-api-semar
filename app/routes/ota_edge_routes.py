@@ -5,8 +5,8 @@ from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
 from app.middlewares.auth import verify_token
-from app.schemas.edge_ota_schema import EdgeOtaResponse, EdgeOtaCreateUpdate
-from app.services.edge_ota_service import EdgeOtaService
+from app.schemas.ota_edge_schema import EdgeOtaResponse, EdgeOtaCreateUpdate
+from app.services.ota_edge_service import EdgeOtaService
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)

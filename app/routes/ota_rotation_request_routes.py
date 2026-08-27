@@ -5,13 +5,13 @@ from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
 from app.middlewares.auth import verify_token
-from app.schemas.rotation_request_schema import (
+from app.schemas.ota_rotation_request_schema import (
     RotationRequestCicdCallback,
     RotationRequestCreate,
     RotationRequestResponse,
     CurrentKeyGenerationResponse,
 )
-from app.services.rotation_request_service import RotationRequestService
+from app.services.ota_rotation_request_service import RotationRequestService
 from app.utils.config import SEMAR_API_TOKEN
 from app.utils.logger import get_logger
 

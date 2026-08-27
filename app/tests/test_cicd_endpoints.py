@@ -2,10 +2,10 @@ import json
 import unittest
 from unittest.mock import AsyncMock, patch
 
-from app.schemas.firmware_release_schema import LatestFirmwareReleaseResponse, FirmwareReleaseResponse
-from app.schemas.rotation_request_schema import CurrentKeyGenerationResponse
-from app.services.firmware_release_service import FirmwareReleaseService
-from app.services.rotation_request_service import RotationRequestService
+from app.schemas.ota_firmware_release_schema import LatestFirmwareReleaseResponse, FirmwareReleaseResponse
+from app.schemas.ota_rotation_request_schema import CurrentKeyGenerationResponse
+from app.services.ota_firmware_release_service import FirmwareReleaseService
+from app.services.ota_rotation_request_service import RotationRequestService
 from app.utils.config import SEMAR_API_TOKEN
 from starlette.testclient import TestClient
 from app.main import app
@@ -27,7 +27,7 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         response = client.post("/api/v1/firmware-releases", data={"manifest": "{}"}, headers={"Authorization": "Bearer invalid_token"})
         self.assertEqual(response.status_code, 401)
 
-    @patch("app.routes.firmware_release_routes.FirmwareReleaseService.create_release")
+    @patch("app.routes.ota_firmware_release_routes.FirmwareReleaseService.create_release")
     def test_firmware_release_create_success(self, mock_create_release):
         from bson import ObjectId
         mock_response = FirmwareReleaseResponse(
@@ -84,23 +84,23 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 404)
 
 
-    @patch("app.services.rotation_request_service.db")
+    @patch("app.services.ota_rotation_request_service.db")
     async def test_get_current_key_generation_found(self, mock_db):
-        mock_db.rotation_requests.find_one = AsyncMock(return_value={"new_key_generation": 5})
+        mock_db.ota_rotation_requests.find_one = AsyncMock(return_value={"new_key_generation": 5})
         res = await RotationRequestService.get_current_key_generation()
         self.assertIsInstance(res, CurrentKeyGenerationResponse)
         self.assertEqual(res.key_generation, 5)
 
-    @patch("app.services.rotation_request_service.db")
+    @patch("app.services.ota_rotation_request_service.db")
     async def test_get_current_key_generation_none(self, mock_db):
-        mock_db.rotation_requests.find_one = AsyncMock(return_value=None)
+        mock_db.ota_rotation_requests.find_one = AsyncMock(return_value=None)
         res = await RotationRequestService.get_current_key_generation()
         self.assertIsInstance(res, CurrentKeyGenerationResponse)
         self.assertEqual(res.key_generation, 0)
 
-    @patch("app.services.firmware_release_service.db")
+    @patch("app.services.ota_firmware_release_service.db")
     async def test_get_latest_release_found(self, mock_db):
-        mock_db.firmware_releases.find_one = AsyncMock(return_value={
+        mock_db.ota_firmware_releases.find_one = AsyncMock(return_value={
             "target_version": "v1.2.3",
             "type": "full",
             "platform_type": "esp32",
@@ -112,9 +112,9 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.type, "full")
         self.assertEqual(res.platform_type, "esp32")
 
-    @patch("app.services.firmware_release_service.db")
+    @patch("app.services.ota_firmware_release_service.db")
     async def test_get_latest_release_none(self, mock_db):
-        mock_db.firmware_releases.find_one = AsyncMock(return_value=None)
+        mock_db.ota_firmware_releases.find_one = AsyncMock(return_value=None)
         res = await FirmwareReleaseService.get_latest_release(release_type="full", platform_type="esp32")
         self.assertIsInstance(res, LatestFirmwareReleaseResponse)
         self.assertIsNone(res.target_version)

@@ -12,11 +12,11 @@ class DashboardService:
     @staticmethod
     async def get_summary():
         try:
-            edge_online_count = await db.edge_otas.count_documents({"status": "online", "deleted_at": None})
-            edge_offline_count = await db.edge_otas.count_documents({"status": {"$ne": "online"}, "deleted_at": None})
-            end_device_count = await db.end_devices.count_documents({"deleted_at": None})
+            edge_online_count = await db.ota_edges.count_documents({"status": "online", "deleted_at": None})
+            edge_offline_count = await db.ota_edges.count_documents({"status": {"$ne": "online"}, "deleted_at": None})
+            end_device_count = await db.ota_end_devices.count_documents({"deleted_at": None})
 
-            latest_release = await db.firmware_releases.find_one(
+            latest_release = await db.ota_firmware_releases.find_one(
                 {"deleted_at": None},
                 sort=[("key_generation", -1), ("inserted_at", -1)]
             )

@@ -13,14 +13,14 @@ from bson import ObjectId
 from fastapi import HTTPException, UploadFile
 
 from app.messaging.mqtt_publisher import publish_message
-from app.models.firmware_release import FirmwareRelease
-from app.schemas.firmware_release_schema import FirmwareReleaseCreate, FirmwareReleaseResponse, LatestFirmwareReleaseResponse
+from app.models.ota_firmware_release import FirmwareRelease
+from app.schemas.ota_firmware_release_schema import FirmwareReleaseCreate, FirmwareReleaseResponse, LatestFirmwareReleaseResponse
 from app.schemas.token_schema import TokenData
-from app.schemas.update_session_schema import UpdateSessionCreate
-from app.services.edge_ota_service import EdgeOtaService
-from app.services.end_device_service import EndDeviceService
+from app.schemas.ota_update_session_schema import UpdateSessionCreate
+from app.services.ota_edge_service import EdgeOtaService
+from app.services.ota_end_device_service import EndDeviceService
 from app.services.server_service import ServerService
-from app.services.update_session_service import UpdateSessionService
+from app.services.ota_update_session_service import UpdateSessionService
 from app.utils.config import FIRMWARE_FOLDER
 from app.utils.db import db
 from app.utils.logger import get_logger
@@ -65,7 +65,7 @@ class FirmwareReleaseService:
                 inserted_at=now_utc,
                 inserted_by=user_id
             )
-            inserted = await db.firmware_releases.insert_one(new_release.model_dump(by_alias=True))
+            inserted = await db.ota_firmware_releases.insert_one(new_release.model_dump(by_alias=True))
             new_id = inserted.inserted_id
             if new_id:
                 return FirmwareReleaseResponse(
@@ -97,7 +97,7 @@ class FirmwareReleaseService:
     @staticmethod
     async def get_release(release_id: str):
         try:
-            doc = await db.firmware_releases.find_one({"_id": ObjectId(release_id), "deleted_at": None})
+            doc = await db.ota_firmware_releases.find_one({"_id": ObjectId(release_id), "deleted_at": None})
             if doc:
                 return FirmwareReleaseResponse(**doc)
             raise HTTPException(status_code=404, detail="Firmware release not found")
@@ -112,7 +112,7 @@ class FirmwareReleaseService:
     async def get_all_releases():
         try:
             releases = []
-            cursor = db.firmware_releases.find({"deleted_at": None})
+            cursor = db.ota_firmware_releases.find({"deleted_at": None})
             async for doc in cursor:
                 releases.append(FirmwareReleaseResponse(**doc))
             return releases
@@ -131,7 +131,7 @@ class FirmwareReleaseService:
             if platform_type:
                 query["platform_type"] = platform_type
             releases = []
-            cursor = db.firmware_releases.find(query)
+            cursor = db.ota_firmware_releases.find(query)
             async for doc in cursor:
                 releases.append(FirmwareReleaseResponse(**doc))
             return releases
@@ -149,7 +149,7 @@ class FirmwareReleaseService:
             if platform_type:
                 query["platform_type"] = platform_type
 
-            doc = await db.firmware_releases.find_one(query, sort=[("inserted_at", -1)])
+            doc = await db.ota_firmware_releases.find_one(query, sort=[("inserted_at", -1)])
             if doc:
                 return LatestFirmwareReleaseResponse(
                     target_version=doc.get("target_version"),

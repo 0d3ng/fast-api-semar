@@ -5,8 +5,8 @@ from fastapi.security import OAuth2PasswordBearer
 from starlette import status
 
 from app.middlewares.auth import verify_token
-from app.schemas.end_device_schema import EndDeviceResponse, EndDeviceCreateUpdate
-from app.services.end_device_service import EndDeviceService
+from app.schemas.ota_end_device_schema import EndDeviceResponse, EndDeviceCreateUpdate
+from app.services.ota_end_device_service import EndDeviceService
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)

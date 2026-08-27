@@ -8,8 +8,8 @@ from bson import ObjectId
 from fastapi import HTTPException
 
 from app.messaging.mqtt_publisher import publish_message
-from app.models.rotation_request import RotationRequest
-from app.schemas.rotation_request_schema import RotationRequestCreate, RotationRequestResponse, RotationRequestCicdCallback, CurrentKeyGenerationResponse
+from app.models.ota_rotation_request import RotationRequest
+from app.schemas.ota_rotation_request_schema import RotationRequestCreate, RotationRequestResponse, RotationRequestCicdCallback, CurrentKeyGenerationResponse
 from app.schemas.token_schema import TokenData
 from app.services.server_service import ServerService
 from app.utils.config import (
@@ -40,7 +40,7 @@ class RotationRequestService:
                 inserted_at=now_utc,
                 inserted_by=current_user.user_id
             )
-            inserted = await db.rotation_requests.insert_one(new_req.model_dump(by_alias=True))
+            inserted = await db.ota_rotation_requests.insert_one(new_req.model_dump(by_alias=True))
             new_id = str(inserted.inserted_id)
 
             # Trigger CI/CD dispatch
@@ -65,7 +65,7 @@ class RotationRequestService:
             else:
                 logger.info(f"[STUB MODE] CI/CD key rotation dispatch triggered for rotation_id: {new_id}")
 
-            doc = await db.rotation_requests.find_one({"_id": ObjectId(new_id)})
+            doc = await db.ota_rotation_requests.find_one({"_id": ObjectId(new_id)})
             return RotationRequestResponse(**doc)
         except Exception as e:
             logger.error(f"Failed to create rotation request: {e}")
@@ -76,7 +76,7 @@ class RotationRequestService:
     @staticmethod
     async def get_rotation_request(rotation_id: str):
         try:
-            doc = await db.rotation_requests.find_one({"_id": ObjectId(rotation_id), "deleted_at": None})
+            doc = await db.ota_rotation_requests.find_one({"_id": ObjectId(rotation_id), "deleted_at": None})
             if doc:
                 return RotationRequestResponse(**doc)
             raise HTTPException(status_code=404, detail="RotationRequest not found")
@@ -91,7 +91,7 @@ class RotationRequestService:
     async def get_all_rotation_requests():
         try:
             reqs = []
-            cursor = db.rotation_requests.find({"deleted_at": None})
+            cursor = db.ota_rotation_requests.find({"deleted_at": None})
             async for doc in cursor:
                 reqs.append(RotationRequestResponse(**doc))
             return reqs
@@ -112,7 +112,7 @@ class RotationRequestService:
                 "updated_at": now_utc,
                 "updated_by": "cicd_webhook"
             }
-            res = await db.rotation_requests.update_one(
+            res = await db.ota_rotation_requests.update_one(
                 {"_id": ObjectId(rotation_id), "deleted_at": None},
                 {"$set": update_fields}
             )
@@ -130,7 +130,7 @@ class RotationRequestService:
     async def broadcast_rotation(rotation_id: str, user_id: str):
         try:
             now_utc = datetime.now(tz=pytz.UTC)
-            req = await db.rotation_requests.find_one({"_id": ObjectId(rotation_id), "deleted_at": None})
+            req = await db.ota_rotation_requests.find_one({"_id": ObjectId(rotation_id), "deleted_at": None})
             if not req:
                 raise HTTPException(status_code=404, detail="RotationRequest not found")
 
@@ -138,7 +138,7 @@ class RotationRequestService:
                 raise HTTPException(status_code=400, detail=f"Cannot broadcast request in status '{req['status']}'")
 
             # Update status to broadcasting
-            await db.rotation_requests.update_one(
+            await db.ota_rotation_requests.update_one(
                 {"_id": ObjectId(rotation_id)},
                 {"$set": {"status": "broadcasting", "broadcast_at": now_utc, "updated_at": now_utc, "updated_by": user_id}}
             )
@@ -168,7 +168,7 @@ class RotationRequestService:
     @staticmethod
     async def get_current_key_generation():
         try:
-            doc = await db.rotation_requests.find_one(
+            doc = await db.ota_rotation_requests.find_one(
                 {"new_key_generation": {"$ne": None}, "deleted_at": None},
                 sort=[("new_key_generation", -1)]
             )

@@ -9,9 +9,9 @@ from fastapi import HTTPException
 
 from app.messaging.mqtt_publisher import publish_message
 from app.middlewares.auth import create_token_enc, create_access_token
-from app.models.edge_ota import EdgeOta
+from app.models.ota_edge import EdgeOta
 from app.models.token import Token
-from app.schemas.edge_ota_schema import EdgeOtaCreateUpdate, EdgeOtaResponse
+from app.schemas.ota_edge_schema import EdgeOtaCreateUpdate, EdgeOtaResponse
 from app.schemas.token_schema import TokenData
 from app.services.server_service import ServerService
 from app.utils.config import ACCESS_TOKEN_EXPIRE_DEVICE_DAYS
@@ -44,7 +44,7 @@ class EdgeOtaService:
                 inserted_by=current_user.user_id
             )
             logger.info(new_edge_ota)
-            inserted = await db.edge_otas.insert_one(new_edge_ota.model_dump(by_alias=True))
+            inserted = await db.ota_edges.insert_one(new_edge_ota.model_dump(by_alias=True))
             new_id = inserted.inserted_id
             logger.info(f"{new_id} {type(new_id)}")
             if new_id:
@@ -120,7 +120,7 @@ class EdgeOtaService:
                 query["$or"] = [{"_id": ObjectId(edge_ota_id)}, {"code": edge_ota_id}]
             else:
                 query["code"] = edge_ota_id
-            doc = await db.edge_otas.find_one(query)
+            doc = await db.ota_edges.find_one(query)
             if doc:
                 return EdgeOtaResponse(**doc)
             raise HTTPException(status_code=404, detail="EdgeOta not found")
@@ -140,7 +140,7 @@ class EdgeOtaService:
                 filter_query["inserted_by"] = user_id
             if active is not None:
                 filter_query["active"] = active
-            cursor = db.edge_otas.find(filter_query)
+            cursor = db.ota_edges.find(filter_query)
             async for doc in cursor:
                 edges.append(EdgeOtaResponse(**doc))
             return edges
@@ -156,7 +156,7 @@ class EdgeOtaService:
             update_data = {k: v for k, v in edge_ota_update.model_dump(exclude_unset=True).items() if v is not None}
             update_data["updated_at"] = now_utc
             update_data["updated_by"] = current_user
-            result = await db.edge_otas.update_one({"_id": ObjectId(edge_ota_id), "deleted_at": None}, {"$set": update_data})
+            result = await db.ota_edges.update_one({"_id": ObjectId(edge_ota_id), "deleted_at": None}, {"$set": update_data})
             if result.matched_count == 1:
                 return await EdgeOtaService.get_edge_ota(edge_ota_id)
             return None
@@ -173,7 +173,7 @@ class EdgeOtaService:
                 "deleted_at": now_utc,
                 "deleted_by": current_user
             }
-            result = await db.edge_otas.update_one({"_id": ObjectId(edge_ota_id)}, {"$set": update_data})
+            result = await db.ota_edges.update_one({"_id": ObjectId(edge_ota_id)}, {"$set": update_data})
             if result.matched_count == 1:
                 return True
             return False

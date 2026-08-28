@@ -116,7 +116,7 @@ class UpdateSessionService:
             )
             if not releases:
                 return {"sessions": []}
-
+            logger.info(f"Releases found: {releases}")
             release_map = {str(r.id): r for r in releases}
             release_ids = list(release_map.keys())
 
@@ -128,10 +128,11 @@ class UpdateSessionService:
                 "deleted_at": None
             }
             sessions_cursor = db.ota_update_sessions.find(sessions_query)
+            logger.info(f"Sessions query: {sessions_query}")
             sessions = []
             async for s in sessions_cursor:
                 sessions.append(s)
-
+            logger.info(f"Sessions found: {sessions}")
             result_sessions = []
             for session in sessions:
                 release_doc = release_map.get(session.get("firmware_release_id"))

@@ -14,8 +14,10 @@ from app.schemas.token_schema import TokenData
 from app.services.server_service import ServerService
 from app.utils.config import (
     CICD_DISPATCH_MODE,
+    GITHUB_BRANCH,
     GITHUB_DISPATCH_TOKEN,
     GITHUB_REPO_NAME,
+    GITHUB_REPO_NAMES,
     GITHUB_REPO_OWNER,
     GITHUB_WORKFLOW_ID,
     MESSAGE_BROKER,
@@ -51,11 +53,17 @@ class RotationRequestService:
                     "Authorization": f"Bearer {GITHUB_DISPATCH_TOKEN}",
                     "X-GitHub-Api-Version": "2022-11-28"
                 }
+                # Format target repos with owner if missing
+                formatted_repos = [
+                    f"{GITHUB_REPO_OWNER}/{r}" if "/" not in r else r
+                    for r in GITHUB_REPO_NAMES
+                ]
                 payload = {
-                    "ref": "main",
+                    "ref": GITHUB_BRANCH,
                     "inputs": {
                         "rotation_id": new_id,
-                        "target_scope": req_data.target_scope
+                        "target_scope": req_data.target_scope,
+                        "target_repos": ",".join(formatted_repos)
                     }
                 }
                 async with httpx.AsyncClient() as client:

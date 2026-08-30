@@ -188,3 +188,62 @@ class RotationRequestService:
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
+    @staticmethod
+    async def add_rotation_ack(rotation_id: str, device_id: str, success: bool = True):
+        try:
+            now_utc = datetime.now(tz=pytz.UTC)
+            if not ObjectId.is_valid(rotation_id):
+                logger.warning(f"Invalid rotation_id for ACK: {rotation_id}")
+                return False
+
+            req = await db.ota_rotation_requests.find_one({"_id": ObjectId(rotation_id), "deleted_at": None})
+            if not req:
+                logger.warning(f"RotationRequest not found for ACK: {rotation_id}")
+                return False
+
+            if success:
+                await db.ota_rotation_requests.update_one(
+                    {"_id": ObjectId(rotation_id)},
+                    {
+                        "$addToSet": {"acknowledged_by": device_id},
+                        "$pull": {"failed_on": device_id},
+                        "$set": {"updated_at": now_utc, "updated_by": "device_ack"}
+                    }
+                )
+                new_key_gen = req.get("new_key_generation")
+                if new_key_gen is not None:
+                    device_query = {"deleted_at": None}
+                    if ObjectId.is_valid(device_id):
+                        device_query["_id"] = ObjectId(device_id)
+                    else:
+                        device_query["device_code"] = device_id
+
+                    await db.ota_end_devices.update_one(
+                        device_query,
+                        {
+                            "$set": {
+                                "current_key_generation": new_key_gen,
+                                "updated_at": now_utc,
+                                "updated_by": "rotation_ack"
+                            }
+                        }
+                    )
+                logger.info(f"Recorded successful rotation ACK for device {device_id} on rotation {rotation_id}")
+            else:
+                await db.ota_rotation_requests.update_one(
+                    {"_id": ObjectId(rotation_id)},
+                    {
+                        "$addToSet": {"failed_on": device_id},
+                        "$pull": {"acknowledged_by": device_id},
+                        "$set": {"updated_at": now_utc, "updated_by": "device_ack"}
+                    }
+                )
+                logger.info(f"Recorded failed rotation ACK for device {device_id} on rotation {rotation_id}")
+
+            return True
+        except Exception as e:
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"Failed to add rotation ACK: {e}\n{tb_str}")
+            return False
+
+

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, List
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -14,6 +14,8 @@ class RotationRequest(BaseModel):
     status: str = "pending_cicd"  # pending_cicd | ready_to_broadcast | broadcasting | completed | failed
     new_key_generation: Optional[int] = None
     signed_manifest: Optional[Any] = None
+    acknowledged_by: List[str] = []
+    failed_on: List[str] = []
     requested_at: Optional[datetime] = None
     signed_at: Optional[datetime] = None
     broadcast_at: Optional[datetime] = None

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, List
 
 from pydantic import Field, ConfigDict, BaseModel, field_validator
 
@@ -33,6 +33,8 @@ class RotationRequestResponse(BaseModel):
     status: str
     new_key_generation: Optional[int] = None
     signed_manifest: Optional[Any] = None
+    acknowledged_by: Optional[List[str]] = []
+    failed_on: Optional[List[str]] = []
     requested_at: Optional[str] = None
     signed_at: Optional[str] = None
     broadcast_at: Optional[str] = None

@@ -35,6 +35,23 @@ class OtaTelemetryService:
 
             result = await db.ota_telemetries.insert_one(new_telemetry.model_dump(by_alias=True))
             logger.info(f"[OTA_TELEMETRY] Inserted telemetry id={result.inserted_id} for device={telemetry_data.device_id}, stage={telemetry_data.stage}")
+
+            # Intercept Key Rotation ACK stages
+            if telemetry_data.stage in ("rotation_success", "rotation_ack", "rotation_completed"):
+                from app.services.ota_rotation_request_service import RotationRequestService
+                await RotationRequestService.add_rotation_ack(
+                    rotation_id=telemetry_data.session_id,
+                    device_id=telemetry_data.device_id,
+                    success=True
+                )
+            elif telemetry_data.stage in ("rotation_failed", "rotation_error"):
+                from app.services.ota_rotation_request_service import RotationRequestService
+                await RotationRequestService.add_rotation_ack(
+                    rotation_id=telemetry_data.session_id,
+                    device_id=telemetry_data.device_id,
+                    success=False
+                )
+
             return result.inserted_id
         except Exception as e:
             logger.error(f"Failed to create OTA telemetry: {e}")

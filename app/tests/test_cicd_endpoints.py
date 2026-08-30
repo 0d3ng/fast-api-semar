@@ -121,6 +121,24 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(res.type)
         self.assertIsNone(res.platform_type)
 
+    @patch("app.services.ota_rotation_request_service.db")
+    async def test_add_rotation_ack_success(self, mock_db):
+        mock_db.ota_rotation_requests.find_one = AsyncMock(return_value={"_id": "6a902c6461982bd3a9ec87e1", "new_key_generation": 3})
+        mock_db.ota_rotation_requests.update_one = AsyncMock(return_value=None)
+        mock_db.ota_end_devices.update_one = AsyncMock(return_value=None)
+        res = await RotationRequestService.add_rotation_ack("6a902c6461982bd3a9ec87e1", "6a7a8ea0fac15162ec1413dd", success=True)
+        self.assertTrue(res)
+        mock_db.ota_rotation_requests.update_one.assert_called_once()
+        mock_db.ota_end_devices.update_one.assert_called_once()
+
+    @patch("app.services.ota_rotation_request_service.db")
+    async def test_add_rotation_ack_failed(self, mock_db):
+        mock_db.ota_rotation_requests.find_one = AsyncMock(return_value={"_id": "6a902c6461982bd3a9ec87e1", "new_key_generation": 3})
+        mock_db.ota_rotation_requests.update_one = AsyncMock(return_value=None)
+        res = await RotationRequestService.add_rotation_ack("6a902c6461982bd3a9ec87e1", "6a7a8ea0fac15162ec1413dd", success=False)
+        self.assertTrue(res)
+        mock_db.ota_rotation_requests.update_one.assert_called_once()
+
 
 if __name__ == '__main__':
     unittest.main()

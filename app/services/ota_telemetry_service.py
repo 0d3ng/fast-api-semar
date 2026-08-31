@@ -62,11 +62,63 @@ class OtaTelemetryService:
     @staticmethod
     async def get_telemetry_by_session(session_id: str):
         try:
-            query = {"session_id": session_id, "deleted_at": None}
+            from bson import ObjectId
+            session_ids = [session_id]
+            try:
+                session_ids.append(int(session_id))
+            except (ValueError, TypeError):
+                pass
+
+            # Resolve update session document if exists to match both _id and session_id
+            update_sess_doc = None
+            if ObjectId.is_valid(session_id):
+                update_sess_doc = await db.ota_update_sessions.find_one({"_id": ObjectId(session_id), "deleted_at": None})
+            if not update_sess_doc:
+                update_sess_doc = await db.ota_update_sessions.find_one({"session_id": session_id, "deleted_at": None})
+            if not update_sess_doc:
+                try:
+                    update_sess_doc = await db.ota_update_sessions.find_one({"session_id": int(session_id), "deleted_at": None})
+                except (ValueError, TypeError):
+                    pass
+
+            if update_sess_doc:
+                raw_sess_id = update_sess_doc.get("session_id")
+                raw_doc_id = str(update_sess_doc.get("_id"))
+                if raw_sess_id is not None:
+                    session_ids.append(str(raw_sess_id))
+                    try:
+                        session_ids.append(int(raw_sess_id))
+                    except (ValueError, TypeError):
+                        pass
+                if raw_doc_id:
+                    session_ids.append(raw_doc_id)
+
+            session_ids = list(set(session_ids))
+
+            query = {"session_id": {"$in": session_ids}, "deleted_at": None}
             cursor = db.ota_telemetries.find(query).sort("timestamp", 1)
             results = []
+            seen_devices = set()
             async for doc in cursor:
                 results.append(OtaTelemetryResponse(**doc))
+                seen_devices.add(doc.get("device_id"))
+
+            # Also check ota_session_acks for any additional records
+            ack_query = {"update_session_id": {"$in": [str(s) for s in session_ids]}, "deleted_at": None}
+            ack_cursor = db.ota_session_acks.find(ack_query)
+            async for ack in ack_cursor:
+                end_dev_id = ack.get("end_device_id", "")
+                if end_dev_id not in seen_devices:
+                    created_val = ack.get("acked_at") or ack.get("inserted_at")
+                    results.append(OtaTelemetryResponse(
+                        _id=ack["_id"],
+                        session_id=str(ack.get("update_session_id")),
+                        device_id=end_dev_id,
+                        stage="completed" if ack.get("status") == "success" else (ack.get("status") or "pending"),
+                        metrics={"notes": ack.get("notes")},
+                        created_at=created_val.isoformat() if created_val else None
+                    ))
+
             return results
         except Exception as e:
             logger.error(f"Failed to get OTA telemetry for session {session_id}: {e}")

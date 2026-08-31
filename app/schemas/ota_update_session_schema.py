@@ -63,6 +63,9 @@ class UpdateSessionResponse(BaseModel):
     @field_validator('started_at', 'completed_at', 'inserted_at', 'updated_at', 'deleted_at', mode='before')
     def convert_datetime(cls, v):
         if isinstance(v, datetime):
+            if v.tzinfo is None:
+                import pytz
+                v = pytz.UTC.localize(v)
             return v.isoformat()
         return v
 

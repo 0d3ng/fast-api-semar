@@ -29,6 +29,9 @@ class OtaTelemetryResponse(BaseModel):
     @field_validator('timestamp', 'inserted_at', mode='before')
     def convert_datetime(cls, v):
         if isinstance(v, datetime):
+            if v.tzinfo is None:
+                import pytz
+                v = pytz.UTC.localize(v)
             return v.isoformat()
         return v
 

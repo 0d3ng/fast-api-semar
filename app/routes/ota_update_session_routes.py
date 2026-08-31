@@ -27,7 +27,7 @@ credentials_exception = HTTPException(
 )
 
 
-@router.get("/update-sessions/", response_model=List[UpdateSessionResponse])
+@router.get("/update-sessions", response_model=List[UpdateSessionResponse])
 async def read_update_sessions(token: str = Depends(oauth2_scheme)):
     try:
         verify_token(token=token, credentials_exception=credentials_exception)
@@ -64,7 +64,7 @@ async def read_update_session(session_id: str, token: str = Depends(oauth2_schem
         raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.post("/update-sessions/", response_model=UpdateSessionResponse)
+@router.post("/update-sessions", response_model=UpdateSessionResponse)
 async def create_update_session(session_data: UpdateSessionCreate, token: str = Depends(oauth2_scheme)):
     try:
         token_data = verify_token(token=token, credentials_exception=credentials_exception)

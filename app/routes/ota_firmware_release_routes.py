@@ -23,7 +23,7 @@ credentials_exception = HTTPException(
 )
 
 
-@router.get("/firmware-releases/", response_model=List[FirmwareReleaseResponse])
+@router.get("/firmware-releases", response_model=List[FirmwareReleaseResponse])
 async def read_firmware_releases(token: str = Depends(oauth2_scheme)):
     try:
         verify_token(token=token, credentials_exception=credentials_exception)

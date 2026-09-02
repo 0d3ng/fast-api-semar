@@ -11,6 +11,8 @@ class RotationRequest(BaseModel):
     trigger_type: str  # scheduled | on_demand
     requested_by: str
     target_scope: str  # all_edges | specific_edges
+    edge_id: Optional[str] = None
+    reason: Optional[str] = None
     status: str = "pending_cicd"  # pending_cicd | ready_to_broadcast | broadcasting | completed | failed
     new_key_generation: Optional[int] = None
     signed_manifest: Optional[Any] = None

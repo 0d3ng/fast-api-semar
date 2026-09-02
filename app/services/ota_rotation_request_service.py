@@ -37,6 +37,8 @@ class RotationRequestService:
                 trigger_type=req_data.trigger_type,
                 requested_by=current_user.user_id,
                 target_scope=req_data.target_scope,
+                edge_id=req_data.edge_id,
+                reason=req_data.reason,
                 status="pending_cicd",
                 requested_at=now_utc,
                 inserted_at=now_utc,
@@ -69,12 +71,20 @@ class RotationRequestService:
                 async with httpx.AsyncClient() as client:
                     resp = await client.post(url, json=payload, headers=headers)
                     if resp.status_code not in (200, 204):
-                        logger.error(f"CI/CD dispatch failed: {resp.status_code} {resp.text}")
+                        error_msg = f"CI/CD dispatch failed ({resp.status_code}): {resp.text}"
+                        logger.error(error_msg)
+                        await db.ota_rotation_requests.update_one(
+                            {"_id": ObjectId(new_id)},
+                            {"$set": {"status": "failed", "updated_at": datetime.now(tz=pytz.UTC)}}
+                        )
+                        raise HTTPException(status_code=502, detail=error_msg)
             else:
                 logger.info(f"[STUB MODE] CI/CD key rotation dispatch triggered for rotation_id: {new_id}")
 
             doc = await db.ota_rotation_requests.find_one({"_id": ObjectId(new_id)})
             return RotationRequestResponse(**doc)
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Failed to create rotation request: {e}")
             tb_str = ''.join(traceback.format_tb(e.__traceback__))

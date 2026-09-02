@@ -7,8 +7,10 @@ from app.utils.custom_fields import PydanticObjectId
 
 
 class RotationRequestCreate(BaseModel):
-    trigger_type: str  # scheduled | on_demand
+    trigger_type: str = "on_demand"  # scheduled | on_demand
     target_scope: str  # all_edges | specific_edges
+    edge_id: Optional[str] = None
+    reason: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -30,6 +32,8 @@ class RotationRequestResponse(BaseModel):
     trigger_type: str
     requested_by: str
     target_scope: str
+    edge_id: Optional[str] = None
+    reason: Optional[str] = None
     status: str
     new_key_generation: Optional[int] = None
     signed_manifest: Optional[Any] = None

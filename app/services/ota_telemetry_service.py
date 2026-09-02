@@ -23,10 +23,23 @@ class OtaTelemetryService:
             else:
                 ts = ts.astimezone(pytz.UTC)
 
+            session_id = telemetry_data.session_id
+            if not session_id and telemetry_data.metrics:
+                if "rotation_id" in telemetry_data.metrics:
+                    session_id = telemetry_data.metrics["rotation_id"]
+
+            telemetry_type = telemetry_data.type
+            if not telemetry_type:
+                if telemetry_data.stage and telemetry_data.stage.startswith("rotation_"):
+                    telemetry_type = "rolling_key"
+                else:
+                    telemetry_type = "firmware_update"
+
             new_telemetry = OtaTelemetry(
-                session_id=telemetry_data.session_id,
+                session_id=session_id,
                 device_id=telemetry_data.device_id,
                 stage=telemetry_data.stage,
+                type=telemetry_type,
                 metrics=telemetry_data.metrics,
                 timestamp=ts,
                 inserted_at=now_utc,
@@ -34,20 +47,20 @@ class OtaTelemetryService:
             )
 
             result = await db.ota_telemetries.insert_one(new_telemetry.model_dump(by_alias=True))
-            logger.info(f"[OTA_TELEMETRY] Inserted telemetry id={result.inserted_id} for device={telemetry_data.device_id}, stage={telemetry_data.stage}")
+            logger.info(f"[OTA_TELEMETRY] Inserted telemetry id={result.inserted_id} for device={telemetry_data.device_id}, stage={telemetry_data.stage}, session_id={session_id}")
 
             # Intercept Key Rotation ACK stages
             if telemetry_data.stage in ("rotation_success", "rotation_ack", "rotation_completed"):
                 from app.services.ota_rotation_request_service import RotationRequestService
                 await RotationRequestService.add_rotation_ack(
-                    rotation_id=telemetry_data.session_id,
+                    rotation_id=session_id,
                     device_id=telemetry_data.device_id,
                     success=True
                 )
             elif telemetry_data.stage in ("rotation_failed", "rotation_error"):
                 from app.services.ota_rotation_request_service import RotationRequestService
                 await RotationRequestService.add_rotation_ack(
-                    rotation_id=telemetry_data.session_id,
+                    rotation_id=session_id,
                     device_id=telemetry_data.device_id,
                     success=False
                 )

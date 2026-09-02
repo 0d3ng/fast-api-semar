@@ -25,7 +25,7 @@ credentials_exception = HTTPException(
 )
 
 
-@router.get("/rotation-requests/", response_model=List[RotationRequestResponse])
+@router.get("/rotation-requests", response_model=List[RotationRequestResponse])
 async def read_rotation_requests(token: str = Depends(oauth2_scheme)):
     try:
         verify_token(token=token, credentials_exception=credentials_exception)
@@ -47,7 +47,7 @@ async def read_rotation_request(rotation_id: str, token: str = Depends(oauth2_sc
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.post("/rotation-requests/", response_model=RotationRequestResponse)
+@router.post("/rotation-requests", response_model=RotationRequestResponse)
 async def create_rotation_request(req_data: RotationRequestCreate, token: str = Depends(oauth2_scheme)):
     try:
         token_data = verify_token(token=token, credentials_exception=credentials_exception)

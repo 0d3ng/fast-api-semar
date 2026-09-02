@@ -7,9 +7,10 @@ from app.utils.custom_fields import PydanticObjectId
 
 
 class OtaTelemetryCreate(BaseModel):
-    session_id: str
+    session_id: Optional[str] = ""
     device_id: str
     stage: str
+    type: Optional[str] = None
     metrics: Dict[str, Any] = {}
     timestamp: Optional[datetime] = None
 
@@ -21,6 +22,7 @@ class OtaTelemetryResponse(BaseModel):
     session_id: str
     device_id: str
     stage: str
+    type: Optional[str] = None
     metrics: Dict[str, Any] = {}
     timestamp: Optional[str] = None
     inserted_at: Optional[str] = None

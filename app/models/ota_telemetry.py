@@ -11,6 +11,7 @@ class OtaTelemetry(BaseModel):
     session_id: str
     device_id: str
     stage: str  # manifest | downloading | verification | etc.
+    type: Optional[str] = None  # firmware_update | rolling_key
     metrics: Dict[str, Any] = {}
     timestamp: Optional[datetime] = None
     inserted_at: Optional[datetime] = None

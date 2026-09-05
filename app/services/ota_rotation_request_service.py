@@ -202,9 +202,22 @@ class RotationRequestService:
     async def add_rotation_ack(rotation_id: str, device_id: str, success: bool = True):
         try:
             now_utc = datetime.now(tz=pytz.UTC)
-            if not ObjectId.is_valid(rotation_id):
-                logger.warning(f"Invalid rotation_id for ACK: {rotation_id}")
-                return False
+            if not rotation_id or not ObjectId.is_valid(rotation_id):
+                active_req = await db.ota_rotation_requests.find_one(
+                    {"status": "broadcasting", "deleted_at": None},
+                    sort=[("broadcast_at", -1)]
+                )
+                if not active_req:
+                    active_req = await db.ota_rotation_requests.find_one(
+                        {"deleted_at": None},
+                        sort=[("inserted_at", -1)]
+                    )
+                if active_req:
+                    rotation_id = str(active_req["_id"])
+                    logger.info(f"Resolved empty rotation_id to active rotation request {rotation_id}")
+                else:
+                    logger.warning(f"Invalid rotation_id for ACK: {rotation_id}")
+                    return False
 
             req = await db.ota_rotation_requests.find_one({"_id": ObjectId(rotation_id), "deleted_at": None})
             if not req:

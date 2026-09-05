@@ -2,6 +2,7 @@ import traceback
 from datetime import datetime
 
 import pytz
+from bson import ObjectId
 from fastapi import HTTPException
 
 from app.models.ota_telemetry import OtaTelemetry
@@ -34,6 +35,20 @@ class OtaTelemetryService:
                     telemetry_type = "rolling_key"
                 else:
                     telemetry_type = "firmware_update"
+
+            if telemetry_type == "rolling_key" and (not session_id or not ObjectId.is_valid(session_id)):
+                active_rot = await db.ota_rotation_requests.find_one(
+                    {"status": "broadcasting", "deleted_at": None},
+                    sort=[("broadcast_at", -1)]
+                )
+                if not active_rot:
+                    active_rot = await db.ota_rotation_requests.find_one(
+                        {"deleted_at": None},
+                        sort=[("inserted_at", -1)]
+                    )
+                if active_rot:
+                    session_id = str(active_rot["_id"])
+                    logger.info(f"Auto-resolved empty rotation session_id to {session_id}")
 
             new_telemetry = OtaTelemetry(
                 session_id=session_id,

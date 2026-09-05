@@ -30,6 +30,14 @@ from app.utils.db import Database
 from app.utils.driver_manager import close_shared_driver
 from app.utils.logger import get_logger
 
+import logging
+
+class EndpointFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        return record.getMessage().find("/api/v1/health") == -1
+
+logging.getLogger("uvicorn.access").addFilter(EndpointFilter())
+
 logger = get_logger(__name__)
 
 app = FastAPI()

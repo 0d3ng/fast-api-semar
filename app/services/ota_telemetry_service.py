@@ -128,6 +128,9 @@ class OtaTelemetryService:
             results = []
             seen_devices = set()
             async for doc in cursor:
+                ts_val = doc.get("timestamp") or doc.get("inserted_at")
+                if "acked_at" not in doc and ts_val:
+                    doc["acked_at"] = ts_val
                 results.append(OtaTelemetryResponse(**doc))
                 seen_devices.add(doc.get("device_id"))
 
@@ -137,14 +140,23 @@ class OtaTelemetryService:
             async for ack in ack_cursor:
                 end_dev_id = ack.get("end_device_id", "")
                 if end_dev_id not in seen_devices:
-                    created_val = ack.get("acked_at") or ack.get("inserted_at")
+                    acked_val = ack.get("acked_at")
+                    inserted_val = ack.get("inserted_at")
+                    chosen_val = acked_val or inserted_val
+                    chosen_iso = chosen_val.isoformat() if hasattr(chosen_val, "isoformat") else (str(chosen_val) if chosen_val else None)
+                    acked_iso = acked_val.isoformat() if hasattr(acked_val, "isoformat") else (str(acked_val) if acked_val else chosen_iso)
+                    inserted_iso = inserted_val.isoformat() if hasattr(inserted_val, "isoformat") else (str(inserted_val) if inserted_val else chosen_iso)
+
                     results.append(OtaTelemetryResponse(
                         _id=ack["_id"],
                         session_id=str(ack.get("update_session_id")),
                         device_id=end_dev_id,
                         stage="completed" if ack.get("status") == "success" else (ack.get("status") or "pending"),
                         metrics={"notes": ack.get("notes")},
-                        created_at=created_val.isoformat() if created_val else None
+                        timestamp=chosen_iso,
+                        acked_at=acked_iso,
+                        inserted_at=inserted_iso,
+                        created_at=chosen_iso
                     ))
 
             return results

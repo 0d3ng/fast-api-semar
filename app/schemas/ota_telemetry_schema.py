@@ -25,10 +25,12 @@ class OtaTelemetryResponse(BaseModel):
     type: Optional[str] = None
     metrics: Dict[str, Any] = {}
     timestamp: Optional[str] = None
+    acked_at: Optional[str] = None
     inserted_at: Optional[str] = None
+    created_at: Optional[str] = None
     inserted_by: Optional[str] = None
 
-    @field_validator('timestamp', 'inserted_at', mode='before')
+    @field_validator('timestamp', 'acked_at', 'inserted_at', 'created_at', mode='before')
     def convert_datetime(cls, v):
         if isinstance(v, datetime):
             if v.tzinfo is None:

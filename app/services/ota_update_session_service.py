@@ -131,15 +131,6 @@ class UpdateSessionService:
                     release_ids_all.append(ObjectId(rid))
 
             # 3. Find pending update sessions for this edge and target releases
-            
-            # --- DEBUG LOGGING ---
-            all_edge_sessions = []
-            async for s in db.ota_update_sessions.find({"target_edge_ota_id": {"$in": target_edge_ids_all}}):
-                # Convert ObjectId to string for logging to avoid serialization issues if any
-                all_edge_sessions.append(str(s))
-            logger.info(f"DEBUG - ALL sessions for edge {target_edge_ids_all}: {all_edge_sessions}")
-            # --- END DEBUG ---
-
             sessions_query = {
                 "target_edge_ota_id": {"$in": target_edge_ids_all},
                 "status": {"$in": ["pending", "preparing", "Pending", "Preparing"]},

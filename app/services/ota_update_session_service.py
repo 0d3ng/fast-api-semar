@@ -108,7 +108,12 @@ class UpdateSessionService:
                         target_edge_ids.append(edge_obj.code)
             except HTTPException:
                 pass
-            target_edge_ids = list(set(target_edge_ids))
+            target_edge_ids_str = list(set(target_edge_ids))
+            target_edge_ids_all = []
+            for eid in target_edge_ids_str:
+                target_edge_ids_all.append(eid)
+                if ObjectId.is_valid(eid):
+                    target_edge_ids_all.append(ObjectId(eid))
 
             # 2. Find releases matching target_version via FirmwareReleaseService
             releases = await FirmwareReleaseService.get_releases_by_target_and_platform(
@@ -118,13 +123,21 @@ class UpdateSessionService:
                 return {"sessions": []}
             logger.info(f"Releases found: {releases}")
             release_map = {str(r.id): r for r in releases}
-            release_ids = list(release_map.keys())
+            release_ids_str = list(release_map.keys())
+            release_ids_all = []
+            for rid in release_ids_str:
+                release_ids_all.append(rid)
+                if ObjectId.is_valid(rid):
+                    release_ids_all.append(ObjectId(rid))
 
             # 3. Find pending update sessions for this edge and target releases
             sessions_query = {
-                "target_edge_ota_id": {"$in": target_edge_ids},
-                "status": {"$in": ["pending", "preparing"]},
-                "firmware_release_id": {"$in": release_ids},
+                "target_edge_ota_id": {"$in": target_edge_ids_all},
+                "status": {"$in": ["pending", "preparing", "Pending", "Preparing"]},
+                "$or": [
+                    {"firmware_release_id": {"$in": release_ids_all}},
+                    {"target_version": target_version}
+                ],
                 "deleted_at": None
             }
             sessions_cursor = db.ota_update_sessions.find(sessions_query)
@@ -135,7 +148,19 @@ class UpdateSessionService:
             logger.info(f"Sessions found: {sessions}")
             result_sessions = []
             for session in sessions:
-                release_doc = release_map.get(session.get("firmware_release_id"))
+                fw_rel_id = session.get("firmware_release_id")
+                release_doc = release_map.get(str(fw_rel_id)) if fw_rel_id is not None else None
+
+                # Fallback if release_doc not found by firmware_release_id: match by type & target_version
+                if not release_doc:
+                    sess_type = session.get("type")
+                    for r in releases:
+                        if (sess_type is None or r.type == sess_type) and r.target_version == target_version:
+                            release_doc = r
+                            break
+                    if not release_doc and releases:
+                        release_doc = releases[0]
+
                 if not release_doc:
                     continue
 

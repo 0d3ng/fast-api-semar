@@ -314,6 +314,7 @@ class UpdateSessionService:
                 end_device_id=ack_data.end_device_id,
                 acked_at=now_utc,
                 status=ack_data.status,
+                total_duration_ms=ack_data.total_duration_ms,
                 notes=ack_data.notes,
                 inserted_at=now_utc,
                 inserted_by=user_id
@@ -359,6 +360,7 @@ class UpdateSessionService:
                     end_device_id=ack_data.end_device_id,
                     acked_at=now_utc,
                     status=ack_data.status,
+                    total_duration_ms=ack_data.total_duration_ms,
                     notes=ack_data.notes,
                     inserted_at=now_utc,
                     inserted_by=user_id

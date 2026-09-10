@@ -147,12 +147,16 @@ class OtaTelemetryService:
                     acked_iso = acked_val.isoformat() if hasattr(acked_val, "isoformat") else (str(acked_val) if acked_val else chosen_iso)
                     inserted_iso = inserted_val.isoformat() if hasattr(inserted_val, "isoformat") else (str(inserted_val) if inserted_val else chosen_iso)
 
+                    metrics_payload = {"notes": ack.get("notes")}
+                    if ack.get("total_duration_ms") is not None:
+                        metrics_payload["total_duration_ms"] = ack.get("total_duration_ms")
+
                     results.append(OtaTelemetryResponse(
                         _id=ack["_id"],
                         session_id=str(ack.get("update_session_id")),
                         device_id=end_dev_id,
                         stage="completed" if ack.get("status") == "success" else (ack.get("status") or "pending"),
-                        metrics={"notes": ack.get("notes")},
+                        metrics=metrics_payload,
                         timestamp=chosen_iso,
                         acked_at=acked_iso,
                         inserted_at=inserted_iso,

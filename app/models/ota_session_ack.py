@@ -12,6 +12,7 @@ class SessionAck(BaseModel):
     end_device_id: str
     acked_at: Optional[datetime] = None
     status: str  # success | failed
+    total_duration_ms: Optional[int] = None
     notes: Optional[str] = None
     inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None

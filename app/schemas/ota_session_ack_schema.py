@@ -9,6 +9,7 @@ from app.utils.custom_fields import PydanticObjectId
 class SessionAckCreate(BaseModel):
     end_device_id: str
     status: str  # success | failed
+    total_duration_ms: Optional[int] = None
     notes: Optional[str] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -20,6 +21,7 @@ class SessionAckResponse(BaseModel):
     end_device_id: str
     acked_at: Optional[str] = None
     status: str
+    total_duration_ms: Optional[int] = None
     notes: Optional[str] = None
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None

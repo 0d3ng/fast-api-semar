@@ -206,7 +206,7 @@ class UpdateSessionService:
                             devices = matched_devices
 
                     target_device_ids = [
-                        str(d.code or d.id) for d in devices
+                        str(d.id) for d in devices
                     ]
 
                 manifest["target_device_ids"] = target_device_ids

@@ -214,7 +214,7 @@ class FirmwareReleaseService:
                 # 3. SPLIT device ke grup delta-eligible vs full-needed
                 delta_group, full_group = [], []
                 for device in devices:
-                    dev_id = str(device.code or device.id)
+                    dev_id = str(device.id)
                     if delta_release and device.current_firmware_version == delta_release.base_version:
                         delta_group.append(dev_id)
                     else:

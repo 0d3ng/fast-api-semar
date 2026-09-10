@@ -193,7 +193,8 @@ class UpdateSessionService:
                     target_edge_key = str(edge_obj.id) if (edge_obj and edge_obj.id) else edge_id
                     devices = await EndDeviceService.get_end_devices(
                         edge_ota_id=target_edge_key,
-                        platform_type=release_doc.platform_type
+                        platform_type=release_doc.platform_type,
+                        status="active"
                     )
 
                     if release_doc.type == "delta" and release_doc.base_version:
@@ -207,6 +208,8 @@ class UpdateSessionService:
                     target_device_ids = [
                         str(d.code or d.id) for d in devices
                     ]
+
+                manifest["target_device_ids"] = target_device_ids
 
                 result_sessions.append({
                     "session_id": session_id_val,

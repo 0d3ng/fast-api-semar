@@ -202,10 +202,11 @@ class FirmwareReleaseService:
             for edge in edges:
                 edge_id = str(edge.id)
 
-                # 2. Fetch device AKTUAL (bukan cuma count), biar bisa isi target_device_ids
+                # 2. Fetch device AKTUAL (bukan cuma count), biar bisa isi target_device_ids (hanya yang berstatus active)
                 devices = await EndDeviceService.get_end_devices(
                     edge_ota_id=edge_id,
-                    platform_type=platform_type
+                    platform_type=platform_type,
+                    status="active"
                 )
                 if not devices:
                     continue
@@ -213,10 +214,11 @@ class FirmwareReleaseService:
                 # 3. SPLIT device ke grup delta-eligible vs full-needed
                 delta_group, full_group = [], []
                 for device in devices:
+                    dev_id = str(device.code or device.id)
                     if delta_release and device.current_firmware_version == delta_release.base_version:
-                        delta_group.append(str(device.id))
+                        delta_group.append(dev_id)
                     else:
-                        full_group.append(str(device.id))
+                        full_group.append(dev_id)
 
                 edge_has_session = False
 

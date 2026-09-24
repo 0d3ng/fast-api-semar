@@ -30,6 +30,7 @@ class UpdateSessionService:
                 rotation_request_id=session_data.rotation_request_id,
                 target_edge_ota_id=session_data.target_edge_ota_id,
                 target_device_ids=session_data.target_device_ids,
+                target_devices=session_data.target_devices,
                 status=session_data.status or "preparing",
                 started_at=now_utc,
                 inserted_at=now_utc,
@@ -42,9 +43,13 @@ class UpdateSessionService:
                     _id=new_id,
                     session_id=new_session.session_id,
                     type=new_session.type,
+                    platform_type=new_session.platform_type,
+                    target_version=new_session.target_version,
                     firmware_release_id=new_session.firmware_release_id,
                     rotation_request_id=new_session.rotation_request_id,
                     target_edge_ota_id=new_session.target_edge_ota_id,
+                    target_device_ids=new_session.target_device_ids,
+                    target_devices=new_session.target_devices,
                     status=new_session.status,
                     started_at=now_utc,
                     inserted_at=now_utc,
@@ -186,9 +191,32 @@ class UpdateSessionService:
                 }
                 manifest = {k: v for k, v in manifest.items() if v is not None}
 
-                # 4. Fetch target device IDs via EndDeviceService or existing session field
-                if session.get("target_device_ids"):
+                # 4. Fetch target devices via session field or EndDeviceService
+                target_devices = session.get("target_devices")
+                if target_devices:
+                    target_device_ids = session.get("target_device_ids") or [
+                        d.get("device_id") for d in target_devices if d.get("device_id")
+                    ]
+                elif session.get("target_device_ids"):
                     target_device_ids = session.get("target_device_ids")
+                    target_edge_key = str(edge_obj.id) if (edge_obj and edge_obj.id) else edge_id
+                    devices = await EndDeviceService.get_end_devices(
+                        edge_ota_id=target_edge_key,
+                        platform_type=release_doc.platform_type,
+                        status="active"
+                    )
+                    t_set = set(target_device_ids)
+                    matched = [d for d in devices if str(d.id) in t_set or d.code in t_set]
+                    devices_to_use = matched if matched else devices
+                    target_devices = [
+                        {
+                            "device_id": str(d.id),
+                            "code": d.code,
+                            "ip_address": getattr(d, "ip_address", None),
+                            "protocol": getattr(d, "ota_protocol", "multicast") or "multicast"
+                        }
+                        for d in devices_to_use
+                    ]
                 else:
                     target_edge_key = str(edge_obj.id) if (edge_obj and edge_obj.id) else edge_id
                     devices = await EndDeviceService.get_end_devices(
@@ -208,14 +236,25 @@ class UpdateSessionService:
                     target_device_ids = [
                         str(d.id) for d in devices
                     ]
+                    target_devices = [
+                        {
+                            "device_id": str(d.id),
+                            "code": d.code,
+                            "ip_address": getattr(d, "ip_address", None),
+                            "protocol": getattr(d, "ota_protocol", "multicast") or "multicast"
+                        }
+                        for d in devices
+                    ]
 
                 manifest["target_device_ids"] = target_device_ids
+                manifest["target_devices"] = target_devices
 
                 result_sessions.append({
                     "session_id": session_id_val,
                     "type": session.get("type") or release_doc.type,
                     "manifest": manifest,
-                    "target_device_ids": target_device_ids
+                    "target_device_ids": target_device_ids,
+                    "target_devices": target_devices
                 })
 
             return {"sessions": result_sessions}

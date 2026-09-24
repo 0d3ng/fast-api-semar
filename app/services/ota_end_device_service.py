@@ -27,6 +27,8 @@ class EndDeviceService:
                 description=end_device.description,
                 platform_type=end_device.platform_type,
                 edge_ota_id=end_device.edge_ota_id,
+                ota_protocol=end_device.ota_protocol or "multicast",
+                ip_address=end_device.ip_address,
                 current_firmware_version=end_device.current_firmware_version,
                 current_key_generation=end_device.current_key_generation or 1,
                 status=end_device.status or "active",
@@ -43,6 +45,8 @@ class EndDeviceService:
                     description=new_device.description,
                     platform_type=new_device.platform_type,
                     edge_ota_id=new_device.edge_ota_id,
+                    ota_protocol=new_device.ota_protocol,
+                    ip_address=new_device.ip_address,
                     current_firmware_version=new_device.current_firmware_version,
                     current_key_generation=new_device.current_key_generation,
                     status=new_device.status,
@@ -91,6 +95,7 @@ class EndDeviceService:
     async def get_end_devices(
         edge_ota_id: Optional[str] = None,
         platform_type: Optional[str] = None,
+        ota_protocol: Optional[str] = None,
         status: Optional[str] = None,
         user_id: Optional[str] = None
     ) -> List[EndDeviceResponse]:
@@ -102,6 +107,8 @@ class EndDeviceService:
                 query["edge_ota_id"] = edge_ota_id
             if platform_type:
                 query["platform_type"] = platform_type
+            if ota_protocol:
+                query["ota_protocol"] = ota_protocol
             if status:
                 query["status"] = status
 
@@ -119,6 +126,7 @@ class EndDeviceService:
     async def get_all_end_devices(
         platform_type: Optional[str] = None,
         edge_ota_id: Optional[str] = None,
+        ota_protocol: Optional[str] = None,
         outdated: Optional[bool] = None,
         user_id: Optional[str] = None
     ):
@@ -130,6 +138,8 @@ class EndDeviceService:
                 query["platform_type"] = platform_type
             if edge_ota_id:
                 query["edge_ota_id"] = edge_ota_id
+            if ota_protocol:
+                query["ota_protocol"] = ota_protocol
 
             if outdated:
                 # Find active key generation from rotation requests or firmware releases

@@ -13,6 +13,8 @@ class EndDevice(BaseModel):
     description: Optional[str] = None
     platform_type: str
     edge_ota_id: str
+    ota_protocol: Optional[str] = "multicast"
+    ip_address: Optional[str] = None
     current_firmware_version: Optional[str] = None
     current_key_generation: Optional[int] = 1
     status: Optional[str] = "active"

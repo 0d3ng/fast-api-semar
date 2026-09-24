@@ -6,6 +6,15 @@ from pydantic import Field, ConfigDict, BaseModel, field_validator
 from app.utils.custom_fields import PydanticObjectId
 
 
+class TargetDeviceInfo(BaseModel):
+    device_id: str
+    code: Optional[str] = None
+    ip_address: Optional[str] = None
+    protocol: Optional[str] = "multicast"
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+
 class UpdateSessionCreate(BaseModel):
     session_id: Any
     type: str  # delta | rotation | full
@@ -15,6 +24,7 @@ class UpdateSessionCreate(BaseModel):
     rotation_request_id: Optional[str] = None
     target_edge_ota_id: str
     target_device_ids: Optional[List[str]] = None
+    target_devices: Optional[List[Dict[str, Any]]] = None
     status: Optional[str] = "preparing"
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -31,6 +41,7 @@ class PendingSessionItem(BaseModel):
     type: str
     manifest: Dict[str, Any]
     target_device_ids: List[str]
+    target_devices: Optional[List[Dict[str, Any]]] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -50,6 +61,8 @@ class UpdateSessionResponse(BaseModel):
     firmware_release_id: Optional[str] = None
     rotation_request_id: Optional[str] = None
     target_edge_ota_id: str
+    target_device_ids: Optional[List[str]] = None
+    target_devices: Optional[List[Dict[str, Any]]] = None
     status: str
     started_at: Optional[str] = None
     completed_at: Optional[str] = None

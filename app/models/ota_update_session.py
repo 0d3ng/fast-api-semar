@@ -16,6 +16,7 @@ class UpdateSession(BaseModel):
     rotation_request_id: Optional[str] = None
     target_edge_ota_id: str
     target_device_ids: Optional[list[str]] = None
+    target_devices: Optional[list[dict]] = None
     status: str = "preparing"  # preparing | broadcasting | completed | failed | pending
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None

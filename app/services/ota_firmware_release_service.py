@@ -213,16 +213,28 @@ class FirmwareReleaseService:
 
                 # 3. SPLIT device ke grup delta-eligible vs full-needed
                 delta_group, full_group = [], []
+                delta_devices_info, full_devices_info = [], []
                 for device in devices:
                     dev_id = str(device.id)
+                    dev_info = {
+                        "device_id": dev_id,
+                        "code": device.code,
+                        "ip_address": getattr(device, "ip_address", None),
+                        "protocol": getattr(device, "ota_protocol", "multicast") or "multicast"
+                    }
                     if delta_release and device.current_firmware_version == delta_release.base_version:
                         delta_group.append(dev_id)
+                        delta_devices_info.append(dev_info)
                     else:
                         full_group.append(dev_id)
+                        full_devices_info.append(dev_info)
 
                 edge_has_session = False
 
-                for group_devices, release in [(delta_group, delta_release), (full_group, full_release)]:
+                for group_devices, group_devices_info, release in [
+                    (delta_group, delta_devices_info, delta_release),
+                    (full_group, full_devices_info, full_release)
+                ]:
                     if not group_devices or not release:
                         continue
 
@@ -235,7 +247,8 @@ class FirmwareReleaseService:
                         target_version=target_version,
                         firmware_release_id=str(release.id),
                         target_edge_ota_id=edge_id,
-                        target_device_ids=group_devices,   # <-- diisi sekarang
+                        target_device_ids=group_devices,
+                        target_devices=group_devices_info,
                         status="pending"
                     )
                     await UpdateSessionService.create_session(session_data, sys_token)

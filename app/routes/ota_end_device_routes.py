@@ -57,6 +57,7 @@ async def read_end_device_by_edge_ota(edge_ota_id: str, token: str = Depends(oau
 async def read_end_devices(
     platform_type: Optional[str] = Query(None),
     edge_ota_id: Optional[str] = Query(None),
+    ota_protocol: Optional[str] = Query(None),
     outdated: Optional[bool] = Query(None),
     token: str = Depends(oauth2_scheme)
 ):
@@ -65,6 +66,7 @@ async def read_end_devices(
         return await EndDeviceService.get_all_end_devices(
             platform_type=platform_type,
             edge_ota_id=edge_ota_id,
+            ota_protocol=ota_protocol,
             outdated=outdated,
             user_id=token_data.user_id
         )

@@ -37,6 +37,8 @@ class RotationRequestResponse(BaseModel):
     status: str
     new_key_generation: Optional[int] = None
     signed_manifest: Optional[Any] = None
+    target_device_ids: Optional[List[str]] = []
+    target_devices: Optional[List[dict]] = []
     acknowledged_by: Optional[List[str]] = []
     failed_on: Optional[List[str]] = []
     requested_at: Optional[str] = None

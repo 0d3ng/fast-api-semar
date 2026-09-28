@@ -345,8 +345,12 @@ class UpdateSessionService:
                 query["session_id"] = session_id
 
             session = await db.ota_update_sessions.find_one(query)
+            is_rotation = False
             if not session:
-                raise HTTPException(status_code=404, detail="UpdateSession not found")
+                session = await db.ota_rotation_requests.find_one(query)
+                is_rotation = True
+            if not session:
+                raise HTTPException(status_code=404, detail="UpdateSession or RotationRequest not found")
 
             new_ack: SessionAck = SessionAck(
                 update_session_id=str(session["_id"]),
@@ -363,7 +367,7 @@ class UpdateSessionService:
 
             if new_id:
                 # Update EndDevice last_update_at and current_firmware_version if status success
-                if ack_data.status == "success":
+                if ack_data.status in ("success", "rotation_success"):
                     device_update = {
                         "last_update_at": now_utc,
                         "updated_at": now_utc,
@@ -381,6 +385,9 @@ class UpdateSessionService:
                         rotation_doc = await db.ota_rotation_requests.find_one({"_id": ObjectId(session.get("rotation_request_id"))})
                         if rotation_doc and rotation_doc.get("new_key_generation") is not None:
                             device_update["current_key_generation"] = rotation_doc.get("new_key_generation")
+
+                    if is_rotation and session.get("new_key_generation") is not None:
+                        device_update["current_key_generation"] = session.get("new_key_generation")
 
                     device_query = {"deleted_at": None}
                     if ObjectId.is_valid(ack_data.end_device_id):

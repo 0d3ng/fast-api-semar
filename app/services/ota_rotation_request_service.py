@@ -155,10 +155,38 @@ class RotationRequestService:
             if req["status"] not in ("ready_to_broadcast", "pending_cicd"):
                 raise HTTPException(status_code=400, detail=f"Cannot broadcast request in status '{req['status']}'")
 
-            # Update status to broadcasting
+            # Collect active target devices
+            edge_id = req.get("edge_id")
+            device_query = {"status": "active", "deleted_at": None}
+            if edge_id:
+                device_query["edge_ota_id"] = str(edge_id)
+
+            cursor = db.ota_end_devices.find(device_query)
+            target_devices = []
+            target_device_ids = []
+            async for d in cursor:
+                dev_id_str = str(d["_id"])
+                target_device_ids.append(dev_id_str)
+                target_devices.append({
+                    "device_id": dev_id_str,
+                    "code": d.get("code"),
+                    "ip_address": d.get("ip_address"),
+                    "protocol": d.get("ota_protocol", "multicast") or "multicast"
+                })
+
+            # Update status to broadcasting, save target_devices and target_device_ids
             await db.ota_rotation_requests.update_one(
                 {"_id": ObjectId(rotation_id)},
-                {"$set": {"status": "broadcasting", "broadcast_at": now_utc, "updated_at": now_utc, "updated_by": user_id}}
+                {
+                    "$set": {
+                        "status": "broadcasting",
+                        "target_device_ids": target_device_ids,
+                        "target_devices": target_devices,
+                        "broadcast_at": now_utc,
+                        "updated_at": now_utc,
+                        "updated_by": user_id
+                    }
+                }
             )
 
             # Stub / MQTT publish command to Edge devices
@@ -169,7 +197,9 @@ class RotationRequestService:
                     payload = json.dumps({
                         "rotation_id": rotation_id,
                         "new_key_generation": req.get("new_key_generation"),
-                        "signed_manifest": req.get("signed_manifest")
+                        "signed_manifest": req.get("signed_manifest"),
+                        "target_device_ids": target_device_ids,
+                        "target_devices": target_devices
                     })
                     publish_message(topic=topic, payload=payload, qos=1, server=server)
             except Exception as mqtt_err:

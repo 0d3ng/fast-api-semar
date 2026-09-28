@@ -16,6 +16,8 @@ class RotationRequest(BaseModel):
     status: str = "pending_cicd"  # pending_cicd | ready_to_broadcast | broadcasting | completed | failed
     new_key_generation: Optional[int] = None
     signed_manifest: Optional[Any] = None
+    target_device_ids: Optional[List[str]] = []
+    target_devices: Optional[List[dict]] = []
     acknowledged_by: List[str] = []
     failed_on: List[str] = []
     requested_at: Optional[datetime] = None

@@ -1,5 +1,6 @@
 import traceback
 from datetime import datetime
+from typing import Optional
 
 import pytz
 from bson import ObjectId
@@ -264,7 +265,7 @@ class UpdateSessionService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
-    async def update_session_status(session_id: str, new_status: str, user_id: str):
+    async def update_session_status(session_id: str, new_status: str, user_id: str, duration_seconds: Optional[float] = None):
         try:
             now_utc = datetime.now(tz=pytz.UTC)
             query = {"deleted_at": None}
@@ -282,6 +283,14 @@ class UpdateSessionService:
                 "updated_at": now_utc,
                 "updated_by": user_id
             }
+
+            if duration_seconds is not None:
+                update_fields["duration_seconds"] = duration_seconds
+
+            if new_status in ("completed", "completed_partial") and not session.get("completed_at"):
+                update_fields["completed_at"] = now_utc
+            elif new_status in ("downloading", "broadcasting") and not session.get("started_at"):
+                update_fields["started_at"] = now_utc
 
             await db.ota_update_sessions.update_one(
                 {"_id": session["_id"]},

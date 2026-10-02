@@ -18,6 +18,7 @@ class UpdateSession(BaseModel):
     target_device_ids: Optional[list[str]] = None
     target_devices: Optional[list[dict]] = None
     status: str = "preparing"  # preparing | broadcasting | completed | failed | pending
+    duration_seconds: Optional[float] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     inserted_at: Optional[datetime] = None

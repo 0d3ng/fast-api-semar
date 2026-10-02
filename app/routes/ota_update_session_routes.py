@@ -86,7 +86,12 @@ async def update_session_status(
 ):
     try:
         token_data = verify_token(token=token, credentials_exception=credentials_exception)
-        return await UpdateSessionService.update_session_status(session_id, status_data.status, token_data.user_id)
+        return await UpdateSessionService.update_session_status(
+            session_id,
+            status_data.status,
+            token_data.user_id,
+            duration_seconds=status_data.duration_seconds
+        )
     except HTTPException:
         raise
     except Exception as e:

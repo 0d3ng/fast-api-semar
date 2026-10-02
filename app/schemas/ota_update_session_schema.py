@@ -32,6 +32,7 @@ class UpdateSessionCreate(BaseModel):
 
 class UpdateSessionStatusUpdate(BaseModel):
     status: Literal["downloading", "broadcasting", "completed", "completed_partial", "failed"]
+    duration_seconds: Optional[float] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -64,6 +65,7 @@ class UpdateSessionResponse(BaseModel):
     target_device_ids: Optional[List[str]] = None
     target_devices: Optional[List[Dict[str, Any]]] = None
     status: str
+    duration_seconds: Optional[float] = None
     started_at: Optional[str] = None
     completed_at: Optional[str] = None
     inserted_at: Optional[str] = None

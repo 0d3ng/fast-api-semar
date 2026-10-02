@@ -113,6 +113,20 @@ class TestCicdEndpoints(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.platform_type, "esp32")
 
     @patch("app.services.ota_firmware_release_service.db")
+    async def test_get_latest_release_arduino_r4_found(self, mock_db):
+        mock_db.ota_firmware_releases.find_one = AsyncMock(return_value={
+            "target_version": "v1.0.0",
+            "type": "full",
+            "platform_type": "arduino_r4",
+            "inserted_at": "2026-10-02T10:00:00Z"
+        })
+        res = await FirmwareReleaseService.get_latest_release(release_type="full", platform_type="arduino_r4")
+        self.assertIsInstance(res, LatestFirmwareReleaseResponse)
+        self.assertEqual(res.target_version, "v1.0.0")
+        self.assertEqual(res.type, "full")
+        self.assertEqual(res.platform_type, "arduino_r4")
+
+    @patch("app.services.ota_firmware_release_service.db")
     async def test_get_latest_release_none(self, mock_db):
         mock_db.ota_firmware_releases.find_one = AsyncMock(return_value=None)
         res = await FirmwareReleaseService.get_latest_release(release_type="full", platform_type="esp32")

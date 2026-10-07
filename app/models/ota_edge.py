@@ -1,9 +1,16 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, Field, ConfigDict
 
 from app.utils.custom_fields import PydanticObjectId
+
+
+class MulticastGroupItem(BaseModel):
+    platform_type: str
+    group: str
+    port: int = 5000
+    enabled: bool = True
 
 
 class EdgeOta(BaseModel):
@@ -13,6 +20,7 @@ class EdgeOta(BaseModel):
     ip_address: Optional[str] = None
     multicast_group: Optional[str] = None
     multicast_port: Optional[int] = None
+    multicast_groups: Optional[List[MulticastGroupItem]] = None
     ttl: Optional[int] = None
     chunk_size: Optional[int] = None
     description: Optional[str] = None

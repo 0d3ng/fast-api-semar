@@ -1,9 +1,33 @@
+import ipaddress
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import Field, ConfigDict, BaseModel, field_validator
 
 from app.utils.custom_fields import PydanticObjectId
+
+
+class MulticastGroupItem(BaseModel):
+    platform_type: str
+    group: str
+    port: int = 5000
+    enabled: bool = True
+
+    @field_validator('group')
+    def validate_multicast_ip(cls, v):
+        try:
+            ip = ipaddress.ip_address(v)
+            if not ip.is_multicast:
+                raise ValueError(f"{v} is not a valid multicast IP address (224.0.0.0/4)")
+        except ValueError as e:
+            raise ValueError(f"Invalid multicast IP: {e}")
+        return v
+
+    @field_validator('port')
+    def validate_port(cls, v):
+        if not (1 <= v <= 65535):
+            raise ValueError("Port must be between 1 and 65535")
+        return v
 
 
 class EdgeOtaCreateUpdate(BaseModel):
@@ -12,10 +36,19 @@ class EdgeOtaCreateUpdate(BaseModel):
     ip_address: Optional[str] = None
     multicast_group: Optional[str] = None
     multicast_port: Optional[int] = None
+    multicast_groups: Optional[List[MulticastGroupItem]] = None
     ttl: Optional[int] = None
     chunk_size: Optional[int] = None
     project_id: str
     active: Optional[bool] = Field(default=True)
+
+    @field_validator('multicast_groups')
+    def validate_unique_platforms(cls, v):
+        if v:
+            platforms = [item.platform_type.lower() for item in v]
+            if len(platforms) != len(set(platforms)):
+                raise ValueError("Duplicate platform_type found in multicast_groups")
+        return v
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -27,6 +60,7 @@ class EdgeOtaResponse(BaseModel):
     ip_address: Optional[str] = None
     multicast_group: Optional[str] = None
     multicast_port: Optional[int] = None
+    multicast_groups: Optional[List[MulticastGroupItem]] = None
     ttl: Optional[int] = None
     chunk_size: Optional[int] = None
     description: Optional[str] = None

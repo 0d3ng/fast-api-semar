@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 from pydantic import Field, ConfigDict, BaseModel, field_validator
 
@@ -33,6 +33,7 @@ class EndDeviceResponse(BaseModel):
     current_key_generation: Optional[int] = 1
     status: Optional[str] = "active"
     last_update_at: Optional[str] = None
+    update_history: Optional[List[Dict[str, Any]]] = Field(default_factory=list)
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None

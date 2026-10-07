@@ -119,3 +119,15 @@ async def get_session_telemetry(session_id: str, token: str = Depends(oauth2_sch
     except Exception as e:
         raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+
+@router.post("/update-sessions/{session_id}/retry", response_model=UpdateSessionResponse)
+async def retry_update_session(session_id: str, token: str = Depends(oauth2_scheme)):
+    try:
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await UpdateSessionService.retry_session(session_id, token_data.user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+

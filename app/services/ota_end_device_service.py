@@ -1,6 +1,6 @@
 import traceback
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 import pytz
 from bson import ObjectId
@@ -63,10 +63,114 @@ class EndDeviceService:
             raise HTTPException(status_code=500, detail=str(e))
 
     @staticmethod
+    async def _get_update_history_for_device(doc: dict) -> List[dict]:
+        try:
+            device_id_str = str(doc.get("_id"))
+            device_code = doc.get("code")
+            device_name = doc.get("name")
+            identifiers = list(set(filter(None, [device_id_str, device_code, device_name])))
+
+            ack_query = {
+                "end_device_id": {"$in": identifiers},
+                "deleted_at": None
+            }
+            acks = await db.ota_session_acks.find(ack_query).sort([("acked_at", -1), ("inserted_at", -1)]).to_list(length=100)
+
+            history_list = []
+            seen_session_keys = set()
+
+            for ack in acks:
+                session_ref = ack.get("update_session_id")
+                session_doc = None
+                is_rotation = False
+
+                if session_ref:
+                    session_query = {"deleted_at": None}
+                    if ObjectId.is_valid(session_ref):
+                        session_query["$or"] = [{"_id": ObjectId(session_ref)}, {"session_id": session_ref}]
+                    else:
+                        session_query["session_id"] = session_ref
+
+                    session_doc = await db.ota_update_sessions.find_one(session_query)
+                    if not session_doc:
+                        session_doc = await db.ota_rotation_requests.find_one(session_query)
+                        if session_doc:
+                            is_rotation = True
+
+                    if not session_doc and isinstance(session_ref, str) and session_ref.isdigit():
+                        session_query_int = {"session_id": int(session_ref), "deleted_at": None}
+                        session_doc = await db.ota_update_sessions.find_one(session_query_int)
+                        if not session_doc:
+                            session_doc = await db.ota_rotation_requests.find_one(session_query_int)
+                            if session_doc:
+                                is_rotation = True
+
+                disp_session_id = str(session_doc.get("session_id") or session_doc.get("_id") or session_ref or "-") if session_doc else str(session_ref or "-")
+
+                fw_version = "-"
+                if session_doc:
+                    seen_session_keys.add(str(session_doc.get("_id")))
+                    if session_doc.get("target_version"):
+                        fw_version = session_doc.get("target_version")
+                    elif is_rotation or session_doc.get("new_key_generation"):
+                        gen = session_doc.get("new_key_generation")
+                        fw_version = f"Key Gen {gen}"
+                    elif session_doc.get("firmware_release_id") and ObjectId.is_valid(session_doc.get("firmware_release_id")):
+                        rel = await db.ota_firmware_releases.find_one({"_id": ObjectId(session_doc.get("firmware_release_id"))})
+                        if rel and rel.get("version"):
+                            fw_version = rel.get("version")
+
+                ts_val = ack.get("acked_at") or ack.get("inserted_at")
+                ts_str = ts_val.strftime("%Y-%m-%d %H:%M:%S") if isinstance(ts_val, datetime) else str(ts_val or "-")
+
+                history_list.append({
+                    "session_id": disp_session_id,
+                    "firmware_version": fw_version,
+                    "status": ack.get("status") or "completed",
+                    "timestamp": ts_str,
+                    "_sort_ts": ts_val if isinstance(ts_val, datetime) else datetime.min
+                })
+
+            targeted_or = [
+                {"target_device_ids": device_id_str},
+                {"target_devices.device_id": device_id_str}
+            ]
+            if device_code:
+                targeted_or.append({"target_devices.code": device_code})
+            targeted_query = {
+                "deleted_at": None,
+                "$or": targeted_or
+            }
+            targeted_sessions = await db.ota_update_sessions.find(targeted_query).sort([("started_at", -1), ("inserted_at", -1)]).to_list(length=50)
+            for tsess in targeted_sessions:
+                sess_id_key = str(tsess.get("_id"))
+                if sess_id_key not in seen_session_keys:
+                    seen_session_keys.add(sess_id_key)
+                    ts_val = tsess.get("completed_at") or tsess.get("started_at") or tsess.get("inserted_at")
+                    ts_str = ts_val.strftime("%Y-%m-%d %H:%M:%S") if isinstance(ts_val, datetime) else str(ts_val or "-")
+                    history_list.append({
+                        "session_id": str(tsess.get("session_id") or tsess.get("_id")),
+                        "firmware_version": tsess.get("target_version") or "-",
+                        "status": tsess.get("status") or "pending",
+                        "timestamp": ts_str,
+                        "_sort_ts": ts_val if isinstance(ts_val, datetime) else datetime.min
+                    })
+
+            history_list.sort(key=lambda x: x.get("_sort_ts") or datetime.min, reverse=True)
+            for item in history_list:
+                item.pop("_sort_ts", None)
+
+            return history_list
+        except Exception as e:
+            logger.error(f"Error compiling update history for end device: {e}")
+            return []
+
+    @staticmethod
     async def get_end_device(end_device_id: str):
         try:
             doc = await db.ota_end_devices.find_one({"_id": ObjectId(end_device_id), "deleted_at": None})
             if doc:
+                doc["update_history"] = await EndDeviceService._get_update_history_for_device(doc)
                 return EndDeviceResponse(**doc)
             raise HTTPException(status_code=404, detail="EndDevice not found")
         except HTTPException:
@@ -81,6 +185,7 @@ class EndDeviceService:
         try:
             doc = await db.ota_end_devices.find_one({"edge_ota_id": edge_ota_id, "deleted_at": None})
             if doc:
+                doc["update_history"] = await EndDeviceService._get_update_history_for_device(doc)
                 return EndDeviceResponse(**doc)
             raise HTTPException(status_code=404, detail="EndDevice with given edge_ota_id not found")
         except HTTPException:

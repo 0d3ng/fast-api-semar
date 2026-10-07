@@ -1,3 +1,4 @@
+import json
 import traceback
 from datetime import datetime
 from typing import Optional
@@ -6,11 +7,14 @@ import pytz
 from bson import ObjectId
 from fastapi import HTTPException
 
+from app.messaging.mqtt_publisher import publish_message
 from app.models.ota_session_ack import SessionAck
 from app.models.ota_update_session import UpdateSession
 from app.schemas.ota_session_ack_schema import SessionAckCreate, SessionAckResponse
 from app.schemas.token_schema import TokenData
 from app.schemas.ota_update_session_schema import UpdateSessionCreate, UpdateSessionResponse
+from app.services.server_service import ServerService
+from app.utils.config import FIRMWARE_UPDATE_TOPIC, ENV, MESSAGE_BROKER
 from app.utils.db import db
 from app.utils.logger import get_logger
 
@@ -428,3 +432,68 @@ class UpdateSessionService:
             tb_str = ''.join(traceback.format_tb(e.__traceback__))
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    @staticmethod
+    async def retry_session(session_id: str, user_id: str):
+        try:
+            query = {"deleted_at": None}
+            if ObjectId.is_valid(session_id):
+                query["$or"] = [{"_id": ObjectId(session_id)}, {"session_id": session_id}]
+            else:
+                query["session_id"] = session_id
+
+            session = await db.ota_update_sessions.find_one(query)
+            if not session:
+                raise HTTPException(status_code=404, detail="UpdateSession not found")
+
+            if session.get("status") in ("completed", "success"):
+                raise HTTPException(status_code=400, detail="Cannot retry a completed update session")
+
+            now_utc = datetime.now(tz=pytz.UTC)
+            update_fields = {
+                "status": "pending",
+                "started_at": None,
+                "completed_at": None,
+                "duration_seconds": None,
+                "updated_at": now_utc,
+                "updated_by": user_id
+            }
+
+            await db.ota_update_sessions.update_one(
+                {"_id": session["_id"]},
+                {"$set": update_fields}
+            )
+
+            edge_id = str(session.get("target_edge_ota_id"))
+            target_version = session.get("target_version")
+            platform_type = session.get("platform_type")
+
+            payload = json.dumps({
+                "type": "firmware_update",
+                "edge_id": edge_id,
+                "target_version": target_version,
+                "platform_type": platform_type
+            })
+
+            server = await ServerService.get_server_config(MESSAGE_BROKER, environment=ENV)
+            if server:
+                publish_message(
+                    topic=FIRMWARE_UPDATE_TOPIC,
+                    payload=payload,
+                    qos=server.parameters['qos'],
+                    server=server
+                )
+                logger.info(f"Published retry firmware_update payload to MQTT: {payload}")
+            else:
+                logger.warning("MQTT Server configuration not found for retry")
+
+            updated_doc = await db.ota_update_sessions.find_one({"_id": session["_id"]})
+            return UpdateSessionResponse(**updated_doc)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to retry update session: {e}")
+            tb_str = "".join(traceback.format_tb(e.__traceback__))
+            logger.error(f"{e}\n{tb_str}")
+            raise HTTPException(status_code=500, detail=str(e))
+

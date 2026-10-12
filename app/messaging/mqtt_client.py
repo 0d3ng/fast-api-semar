@@ -4,6 +4,7 @@ import json
 import ssl
 import struct
 import time
+import uuid
 from datetime import datetime
 
 import certifi
@@ -29,51 +30,80 @@ logger = get_logger(__name__)
 mqtt_cli = None
 topic_devices = []
 running = True
-topic_pub: str
-topic_sub: str
-topic_sub_device: str
-topic_unsub_device: str
-qos: int
-server: ServerResponse
-topic_binary="device/data/encrypted"
-topic_binary_response="device/data/decrypted/response"
+event_loop = None
+topic_pub: str = ""
+topic_sub: str = ""
+topic_sub_device: str = ""
+topic_unsub_device: str = ""
+qos: int = 1
+server: ServerResponse = None
+topic_binary = "device/data/encrypted"
+topic_binary_response = "device/data/decrypted/response"
 
 
 # Callback saat koneksi berhasil
 async def on_connect_async(client, userdata, flags, rc):
     try:
         global running, topic_sub, topic_sub_device, topic_unsub_device, qos, topic_pub
-        logger.info(f"Connected with result code {rc}")
+        logger.info(f"Connected to MQTT broker with result code {rc}")
+        if rc != 0:
+            logger.error(f"MQTT connection returned non-zero code: {rc}")
+            return
+
+        qos = server.parameters.get('qos', 1) if server and server.parameters else 1
+
+        # 1. Prioritaskan subscribe ke topik sistem terlebih dahulu (OTA Telemetry & Binary)
+        client.subscribe(OTA_TELEMETRY_TOPIC, qos=qos)
+        logger.info(f"Subscribed to OTA telemetry topic: {OTA_TELEMETRY_TOPIC} (qos={qos})")
+        client.subscribe(topic_binary, qos=qos)
+
+        if server and server.parameters and 'topics' in server.parameters:
+            topic_sub_device = server.parameters['topics']['subscribe_device']
+            topic_unsub_device = server.parameters['topics']['unsubscribe_device']
+            client.subscribe(topic_sub_device, qos=qos)
+            client.subscribe(topic_unsub_device, qos=qos)
+
+            topic_pub = server.parameters['topics']['publish']
+            topic_sub = server.parameters['topics']['subscribe']
+            logger.info(f"topic_pub: {topic_pub}")
+
+        # 2. Subscribe ke topic masing-masing end device
         devices = await DeviceService.get_active_all_devices("mqtt")
         if not devices:
             logger.warning(".......................................")
-            logger.warning(f"Not any device, please create first...")
+            logger.warning("Not any active mqtt devices found...")
             logger.warning(".......................................")
-
-        topic_pub = server.parameters['topics']['publish']
-        topic_sub = server.parameters['topics']['subscribe']
-        logger.info(f"topic_pub: {topic_pub}")
-        topic_sub_device = server.parameters['topics']['subscribe_device']
-        topic_unsub_device = server.parameters['topics']['unsubscribe_device']
-        qos = server.parameters['qos']
-        for device in devices:
-            topic_devices.append((topic_sub + device.code))
-            logger.info(f"device: {device}")
-            logger.info(f"topic: {(topic_sub + device.code)}")
-            client.subscribe(topic_sub + device.code, qos=qos)
-        client.subscribe(topic_sub_device, qos=qos)
-        client.subscribe(topic_unsub_device, qos=qos)
-        client.subscribe(topic_binary, qos=qos)
-        client.subscribe(OTA_TELEMETRY_TOPIC, qos=qos)
-        logger.info(f'Subscribed to OTA telemetry topic: {OTA_TELEMETRY_TOPIC}')
+        else:
+            for device in devices:
+                dev_topic = topic_sub + device.code
+                if dev_topic not in topic_devices:
+                    topic_devices.append(dev_topic)
+                logger.info(f"Subscribed to device topic: {dev_topic}")
+                client.subscribe(dev_topic, qos=qos)
     except Exception as e:
-        logger.error(f"Error on_connect: {e}")
+        logger.error(f"Error in on_connect_async: {e}", exc_info=True)
 
 
 # Synchronous wrapper for on_connect
-def on_connect(client, userdata, flags, rc):
-    loop = asyncio.get_event_loop()
-    asyncio.run_coroutine_threadsafe(on_connect_async(client, userdata, flags, rc), loop)
+def on_connect(client, userdata, flags, rc, properties=None):
+    global event_loop
+    target_loop = event_loop if (event_loop and event_loop.is_running()) else None
+    if not target_loop:
+        try:
+            target_loop = asyncio.get_event_loop()
+        except Exception:
+            pass
+    if target_loop and target_loop.is_running():
+        asyncio.run_coroutine_threadsafe(on_connect_async(client, userdata, flags, rc), target_loop)
+    else:
+        logger.error("No active event loop found to run on_connect_async")
+
+
+def on_disconnect(client, userdata, rc, properties=None):
+    if rc != 0:
+        logger.warning(f"Unexpected MQTT disconnection (rc={rc}). Paho-mqtt will attempt automatic reconnect.")
+    else:
+        logger.info("MQTT client disconnected cleanly.")
 
 
 # Callback saat pesan diterima
@@ -193,7 +223,11 @@ def on_message(client, userdata, msg):
                     device_id=dt.device_id,
                     device_code=dt.device_code
                 )
-                asyncio.create_task(process_sensor_data(client, dt, token_dev))
+                target_loop = event_loop if (event_loop and event_loop.is_running()) else None
+                if target_loop:
+                    asyncio.run_coroutine_threadsafe(process_sensor_data(client, dt, token_dev), target_loop)
+                else:
+                    asyncio.create_task(process_sensor_data(client, dt, token_dev))
             except Exception as e:
                 logger.warning(f"Warning on_message: {e}")
         elif msg.topic == OTA_TELEMETRY_TOPIC:
@@ -202,9 +236,13 @@ def on_message(client, userdata, msg):
                 logger.info(f"Received OTA telemetry payload: {raw_payload}")
                 payload_data = json.loads(raw_payload)
                 telemetry_create = OtaTelemetryCreate(**payload_data)
-                asyncio.create_task(OtaTelemetryService.create_telemetry(telemetry_create))
+                target_loop = event_loop if (event_loop and event_loop.is_running()) else None
+                if target_loop:
+                    asyncio.run_coroutine_threadsafe(OtaTelemetryService.create_telemetry(telemetry_create), target_loop)
+                else:
+                    asyncio.create_task(OtaTelemetryService.create_telemetry(telemetry_create))
             except Exception as e:
-                logger.error(f"Failed to process OTA telemetry on {msg.topic}: {e}")
+                logger.error(f"Failed to process OTA telemetry on {msg.topic}: {e}", exc_info=True)
         elif msg.topic == topic_sub_device:
             device_code = payload
             client.subscribe(topic_sub + device_code, qos=1)
@@ -237,7 +275,8 @@ async def process_sensor_data(client, data: SensorActuatorCreate, token: TokenDa
 
 # Fungsi untuk memulai MQTT client
 async def start_mqtt_client():
-    global mqtt_cli, server, running
+    global mqtt_cli, server, running, event_loop
+    event_loop = asyncio.get_running_loop()
     try:
         server = await ServerService.get_server_config(protocol=MESSAGE_BROKER.lower(), environment=ENV)
         if not server:
@@ -245,6 +284,7 @@ async def start_mqtt_client():
             logger.error(f"Not any server configuration, please create first...")
             logger.error(".......................................")
             running = False
+            return
         logger.info(f"server: {server}")
 
         logger.info("Starting MQTT client")
@@ -257,20 +297,40 @@ async def start_mqtt_client():
         (__)(__)(__)|__|  |__|  \_____\_____\   |__|         |__|    (__)(__)(__)
         """
         logger.info(ascii_art)
-        mqtt_cli = mqtt.Client()
+        client_id = f"semar_backend_{uuid.uuid4().hex[:8]}"
+        mqtt_cli = mqtt.Client(client_id=client_id)
         mqtt_cli.username_pw_set(server.parameters['username'], server.parameters['password'])
         mqtt_cli.on_connect = on_connect
         mqtt_cli.on_message = on_message
+        mqtt_cli.on_disconnect = on_disconnect
         if server.protocol == "mqtts":
             logger.info(f"connecting MQTT broker (TLS): {server.host} port: {server.ports['mqtt']}")
-            mqtt_cli.tls_set(ca_certs=certifi.where(),tls_version=ssl.PROTOCOL_TLS)
+            mqtt_cli.tls_set(ca_certs=certifi.where(), tls_version=ssl.PROTOCOL_TLS)
         else:
             logger.info(f"connecting MQTT broker: {server.host} port: {server.ports['mqtt']}")
-        mqtt_cli.connect(server.host, server.ports['mqtt'], server.parameters['keep_alive'])
+        
+        keep_alive = server.parameters.get('keep_alive', 60)
+        mqtt_cli.connect_async(server.host, server.ports['mqtt'], keep_alive)
+        mqtt_cli.loop_start()
+        logger.info("MQTT loop_start() initiated successfully with automatic reconnection.")
+        
         while running:
-            mqtt_cli.loop(timeout=1)
             await asyncio.sleep(1)
+            
+        mqtt_cli.loop_stop()
         mqtt_cli.disconnect()
         logger.info("Disconnected")
     except Exception as e:
-        logger.error(f"Error in start_mqtt_client: {e}")
+        logger.error(f"Error in start_mqtt_client: {e}", exc_info=True)
+
+
+def stop_mqtt_client():
+    global running, mqtt_cli
+    running = False
+    if mqtt_cli:
+        try:
+            mqtt_cli.loop_stop()
+            mqtt_cli.disconnect()
+            logger.info("MQTT client loop stopped cleanly.")
+        except Exception as e:
+            logger.error(f"Error stopping MQTT client: {e}")

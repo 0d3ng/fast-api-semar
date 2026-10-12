@@ -19,7 +19,7 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from app.messaging.mqtt_client import start_mqtt_client
+from app.messaging.mqtt_client import start_mqtt_client, stop_mqtt_client
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes, \
     widget_routes, server_routes, amedas_routes, tenki_routes, edge_routes, edge_data_routes, ota_edge_routes, ota_end_device_routes, ota_firmware_release_routes, ota_rotation_request_routes, ota_update_session_routes, dashboard_routes
 from app.routes.k8s import kub_sensor_routes
@@ -85,9 +85,8 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
-    global running
     logger.info("Server shutting down...")
-    running = False
+    stop_mqtt_client()
     await close_shared_driver()
 
 

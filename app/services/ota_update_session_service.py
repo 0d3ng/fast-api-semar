@@ -252,7 +252,6 @@ class UpdateSessionService:
                     ]
 
                 manifest["target_device_ids"] = target_device_ids
-                manifest["target_devices"] = target_devices
 
                 result_sessions.append({
                     "session_id": session_id_val,

@@ -1,6 +1,6 @@
 from app.schemas.ota_telemetry_schema import OtaTelemetryResponse
 from app.services.ota_telemetry_service import OtaTelemetryService
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.security import OAuth2PasswordBearer
@@ -14,7 +14,13 @@ from app.schemas.ota_update_session_schema import (
     UpdateSessionStatusUpdate,
     PendingSessionsResponse,
 )
+from app.schemas.ota_network_metric_schema import (
+    OtaNetworkMetricCreate,
+    OtaNetworkMetricResponse,
+    NetworkComparisonResponse
+)
 from app.services.ota_update_session_service import UpdateSessionService
+from app.services.ota_network_metric_service import OtaNetworkMetricService
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -129,5 +135,50 @@ async def retry_update_session(session_id: str, token: str = Depends(oauth2_sche
         raise
     except Exception as e:
         raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/update-sessions/network-metrics/comparison", response_model=NetworkComparisonResponse)
+async def get_network_metrics_comparison(
+    session_ids: Optional[List[str]] = Query(None, description="Optional list of session IDs to compare"),
+    edge_id: Optional[str] = Query(None, description="Optional Edge OTA ID filter"),
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        verify_token(token=token, credentials_exception=credentials_exception)
+        return await OtaNetworkMetricService.get_comparison_metrics(session_ids=session_ids, edge_id=edge_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/update-sessions/{session_id}/network-metrics", response_model=OtaNetworkMetricResponse)
+async def post_network_metrics(
+    session_id: str,
+    metric_data: OtaNetworkMetricCreate,
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        token_data = verify_token(token=token, credentials_exception=credentials_exception)
+        return await OtaNetworkMetricService.record_metrics(session_id, metric_data, token_data.user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/update-sessions/{session_id}/network-metrics", response_model=OtaNetworkMetricResponse)
+async def get_session_network_metrics(
+    session_id: str,
+    token: str = Depends(oauth2_scheme)
+):
+    try:
+        verify_token(token=token, credentials_exception=credentials_exception)
+        return await OtaNetworkMetricService.get_metrics_by_session(session_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 

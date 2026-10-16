@@ -21,7 +21,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.messaging.mqtt_client import start_mqtt_client, stop_mqtt_client
 from app.routes import user_routes, role_routes, device_routes, project_routes, sensor_routes, token_routes, \
-    widget_routes, server_routes, amedas_routes, tenki_routes, edge_routes, edge_data_routes, ota_edge_routes, ota_end_device_routes, ota_firmware_release_routes, ota_rotation_request_routes, ota_update_session_routes, dashboard_routes
+    widget_routes, server_routes, amedas_routes, tenki_routes, edge_routes, edge_data_routes, ota_edge_routes, ota_end_device_routes, ota_firmware_release_routes, ota_rotation_request_routes, ota_update_session_routes, dashboard_routes, ota_config_update_request_routes
 from app.routes.k8s import kub_sensor_routes
 from app.routes.firmware import firmware_routes
 from app.scripts.amedas_scheduler import service_amedas_scheduler
@@ -101,6 +101,7 @@ app.include_router(ota_end_device_routes.router, prefix="/api/v1", tags=["EndDev
 app.include_router(ota_firmware_release_routes.router, prefix="/api/v1", tags=["FirmwareReleases"])
 app.include_router(ota_rotation_request_routes.router, prefix="/api/v1", tags=["RotationRequests"])
 app.include_router(ota_update_session_routes.router, prefix="/api/v1", tags=["UpdateSessions"])
+app.include_router(ota_config_update_request_routes.router, prefix="/api/v1", tags=["ConfigUpdateRequests"])
 app.include_router(dashboard_routes.router, prefix="/api/v1", tags=["Dashboard"])
 app.include_router(edge_data_routes.router, prefix="/api/v1", tags=["EdgesData"])
 app.include_router(project_routes.router, prefix="/api/v1", tags=["Projects"])

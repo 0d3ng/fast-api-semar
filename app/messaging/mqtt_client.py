@@ -9,8 +9,11 @@ from datetime import datetime
 
 import certifi
 import paho.mqtt.client as mqtt
+from bson import ObjectId
 from Crypto.Cipher import AES
 import pytz
+
+from app.utils.db import db
 
 from app.schemas.sensor_actuator_schema import SensorActuatorCreate
 from app.schemas.server_schema import ServerResponse
@@ -56,6 +59,8 @@ async def on_connect_async(client, userdata, flags, rc):
         client.subscribe(OTA_TELEMETRY_TOPIC, qos=qos)
         logger.info(f"Subscribed to OTA telemetry topic: {OTA_TELEMETRY_TOPIC} (qos={qos})")
         client.subscribe(topic_binary, qos=qos)
+        client.subscribe("semar/edge/+/devices/heartbeat", qos=qos)
+        logger.info(f"Subscribed to edge devices heartbeat topic: semar/edge/+/devices/heartbeat (qos={qos})")
 
         if server and server.parameters and 'topics' in server.parameters:
             topic_sub_device = server.parameters['topics']['subscribe_device']
@@ -243,6 +248,17 @@ def on_message(client, userdata, msg):
                     asyncio.create_task(OtaTelemetryService.create_telemetry(telemetry_create))
             except Exception as e:
                 logger.error(f"Failed to process OTA telemetry on {msg.topic}: {e}", exc_info=True)
+        elif msg.topic.startswith("semar/edge/") and msg.topic.endswith("/devices/heartbeat"):
+            try:
+                raw_payload = msg.payload.decode('utf-8')
+                payload_data = json.loads(raw_payload)
+                target_loop = event_loop if (event_loop and event_loop.is_running()) else None
+                if target_loop:
+                    asyncio.run_coroutine_threadsafe(process_edge_devices_heartbeat(payload_data), target_loop)
+                else:
+                    asyncio.create_task(process_edge_devices_heartbeat(payload_data))
+            except Exception as e:
+                logger.error(f"Failed to process edge heartbeat on {msg.topic}: {e}", exc_info=True)
         elif msg.topic == topic_sub_device:
             device_code = payload
             client.subscribe(topic_sub + device_code, qos=1)
@@ -271,6 +287,48 @@ async def process_sensor_data(client, data: SensorActuatorCreate, token: TokenDa
         client.publish(topic=(topic_pub + token.device_code), payload=json.dumps(payload), qos=1)
     except Exception as e:
         logger.error(f"Error on_message: {e}")
+
+
+async def process_edge_devices_heartbeat(payload_data: dict):
+    try:
+        edge_id = payload_data.get("edge_id")
+        devices = payload_data.get("devices", [])
+        now_utc = datetime.now(tz=pytz.UTC)
+
+        for dev in devices:
+            dev_id = dev.get("device_id")
+            if not dev_id:
+                continue
+
+            query_or = [{"code": dev_id}, {"name": dev_id}]
+            if ObjectId.is_valid(dev_id):
+                query_or.append({"_id": ObjectId(dev_id)})
+
+            update_fields = {
+                "ip_address": dev.get("ip_address"),
+                "status": (dev.get("status") or "active").lower(),
+                "last_update_at": now_utc
+            }
+            if dev.get("protocol") and dev.get("protocol") != "-":
+                update_fields["ota_protocol"] = dev.get("protocol").lower()
+            if dev.get("firmware_version") and dev.get("firmware_version") != "-":
+                update_fields["current_firmware_version"] = dev.get("firmware_version")
+            if edge_id:
+                update_fields["edge_ota_id"] = str(edge_id)
+
+            await db.ota_end_devices.update_one(
+                {"$or": query_or, "deleted_at": None},
+                {"$set": update_fields}
+            )
+
+        if edge_id and ObjectId.is_valid(edge_id):
+            await db.ota_edges.update_one(
+                {"_id": ObjectId(edge_id), "deleted_at": None},
+                {"$set": {"last_seen_at": now_utc, "status": "active"}}
+            )
+        logger.debug(f"Updated {len(devices)} device heartbeats from edge {edge_id}")
+    except Exception as e:
+        logger.error(f"Error in process_edge_devices_heartbeat: {e}")
 
 
 # Fungsi untuk memulai MQTT client

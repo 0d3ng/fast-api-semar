@@ -314,40 +314,15 @@ async def process_sensor_data(client, data: SensorActuatorCreate, token: TokenDa
 async def process_edge_devices_heartbeat(payload_data: dict):
     try:
         edge_id = payload_data.get("edge_id")
-        devices = payload_data.get("devices", [])
         now_utc = datetime.now(tz=pytz.UTC)
 
-        for dev in devices:
-            dev_id = dev.get("device_id")
-            if not dev_id:
-                continue
-
-            query_or = [{"code": dev_id}, {"name": dev_id}]
-            if ObjectId.is_valid(dev_id):
-                query_or.append({"_id": ObjectId(dev_id)})
-
-            update_fields = {
-                "ip_address": dev.get("ip_address"),
-                "last_update_at": now_utc
-            }
-            if dev.get("protocol") and dev.get("protocol") != "-":
-                update_fields["ota_protocol"] = dev.get("protocol").lower()
-            if dev.get("firmware_version") and dev.get("firmware_version") != "-":
-                update_fields["current_firmware_version"] = dev.get("firmware_version")
-            if edge_id:
-                update_fields["edge_ota_id"] = str(edge_id)
-
-            await db.ota_end_devices.update_one(
-                {"$or": query_or, "deleted_at": None},
-                {"$set": update_fields}
-            )
-
+        # Only update Edge Gateway last_seen status; do NOT modify ota_end_devices
         if edge_id and ObjectId.is_valid(edge_id):
             await db.ota_edges.update_one(
                 {"_id": ObjectId(edge_id), "deleted_at": None},
                 {"$set": {"last_seen_at": now_utc, "status": "active"}}
             )
-        logger.debug(f"Updated {len(devices)} device heartbeats from edge {edge_id}")
+        logger.debug(f"Processed heartbeat for edge {edge_id}")
     except Exception as e:
         logger.error(f"Error in process_edge_devices_heartbeat: {e}")
 

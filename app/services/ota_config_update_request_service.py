@@ -1,3 +1,4 @@
+import asyncio
 import json
 import traceback
 from datetime import datetime
@@ -24,6 +25,8 @@ logger = get_logger(__name__)
 
 
 class ConfigUpdateRequestService:
+    _ack_lock = asyncio.Lock()
+
     @staticmethod
     async def create_config_request(req_data: ConfigUpdateRequestCreate, current_user: TokenData) -> ConfigUpdateRequestResponse:
         try:
@@ -150,105 +153,114 @@ class ConfigUpdateRequestService:
             logger.error(f"{e}\n{tb_str}")
             raise HTTPException(status_code=500, detail=str(e))
 
-    @staticmethod
-    async def record_device_ack(request_id: str, ack_data: ConfigUpdateAckPayload) -> ConfigUpdateRequestResponse:
-        try:
-            if not ObjectId.is_valid(request_id):
-                raise HTTPException(status_code=400, detail="Invalid request ID")
+    @classmethod
+    async def record_device_ack(cls, request_id: str, ack_data: ConfigUpdateAckPayload) -> ConfigUpdateRequestResponse:
+        async with cls._ack_lock:
+            try:
+                if not ObjectId.is_valid(request_id):
+                    raise HTTPException(status_code=400, detail="Invalid request ID")
 
-            doc = await db.ota_config_update_requests.find_one({"_id": ObjectId(request_id), "deleted_at": None})
-            if not doc:
-                raise HTTPException(status_code=404, detail="Config update request not found")
+                doc = await db.ota_config_update_requests.find_one({"_id": ObjectId(request_id), "deleted_at": None})
+                if not doc:
+                    raise HTTPException(status_code=404, detail="Config update request not found")
 
-            now_utc = datetime.now(tz=pytz.UTC)
-            now_str = now_utc.strftime('%Y-%m-%d %H:%M:%S')
+                now_utc = datetime.now(tz=pytz.UTC)
+                jst = pytz.timezone('Asia/Tokyo')
+                now_jst = now_utc.astimezone(jst)
+                now_str = now_jst.strftime('%Y-%m-%d %H:%M:%S')
 
-            device_results = doc.get("device_results", [])
-            updated = False
-            matched_dev = None
-            for dev in device_results:
-                if (
-                    dev.get("device_id") == ack_data.device_id
-                    or dev.get("code") == ack_data.device_id
-                    or dev.get("name") == ack_data.device_id
-                    or len(device_results) == 1
-                ):
-                    dev["status"] = ack_data.status
-                    dev["reason"] = ack_data.reason
-                    dev["updated_at"] = now_str
-                    updated = True
-                    matched_dev = dev
-                    break
+                device_results = doc.get("device_results", [])
+                updated = False
+                matched_dev = None
+                ack_id_norm = str(ack_data.device_id or "").strip().lower()
 
-            if not updated:
-                # Add as extra device result if device not originally in list
-                device_results.append({
-                    "device_id": ack_data.device_id,
-                    "code": ack_data.device_id,
-                    "status": ack_data.status,
-                    "reason": ack_data.reason,
-                    "updated_at": now_str
-                })
+                for dev in device_results:
+                    d_id = str(dev.get("device_id") or "").strip().lower()
+                    d_code = str(dev.get("code") or "").strip().lower()
+                    d_name = str(dev.get("name") or "").strip().lower()
 
-            # If ACK status is success, sync ota_protocol to ota_end_devices only if it was updated in this request
-            config_payload = doc.get("config_payload", {})
-            new_protocol = config_payload.get("ota_protocol")
-            if ack_data.status == "success" and new_protocol:
-                new_protocol_clean = str(new_protocol).strip().lower()
-                query_or = []
-                if matched_dev:
-                    if matched_dev.get("device_id") and ObjectId.is_valid(matched_dev.get("device_id")):
-                        query_or.append({"_id": ObjectId(matched_dev["device_id"])})
-                    if matched_dev.get("code"):
-                        query_or.append({"code": matched_dev["code"]})
-                    if matched_dev.get("name"):
-                        query_or.append({"name": matched_dev["name"]})
-                    matched_dev["protocol"] = new_protocol_clean
+                    if (
+                        d_id == ack_id_norm
+                        or d_code == ack_id_norm
+                        or d_name == ack_id_norm
+                        or len(device_results) == 1
+                    ):
+                        dev["status"] = ack_data.status
+                        dev["reason"] = ack_data.reason
+                        dev["updated_at"] = now_str
+                        updated = True
+                        matched_dev = dev
+                        break
 
-                if ObjectId.is_valid(ack_data.device_id):
-                    query_or.append({"_id": ObjectId(ack_data.device_id)})
-                else:
-                    query_or.append({"code": ack_data.device_id})
-                    query_or.append({"name": ack_data.device_id})
+                if not updated:
+                    # Add as extra device result if device not originally in list
+                    device_results.append({
+                        "device_id": ack_data.device_id,
+                        "code": ack_data.device_id,
+                        "status": ack_data.status,
+                        "reason": ack_data.reason,
+                        "updated_at": now_str
+                    })
 
-                if query_or:
-                    await db.ota_end_devices.update_one(
-                        {"$or": query_or, "deleted_at": None},
-                        {"$set": {"ota_protocol": new_protocol_clean, "updated_at": now_utc}}
-                    )
-                    logger.info(f"[CONFIG ACK] Synchronized ota_protocol='{new_protocol_clean}' to ota_end_devices for {ack_data.device_id}")
+                # If ACK status is success, sync ota_protocol to ota_end_devices only if it was updated in this request
+                config_payload = doc.get("config_payload", {})
+                new_protocol = config_payload.get("ota_protocol")
+                if ack_data.status == "success" and new_protocol:
+                    new_protocol_clean = str(new_protocol).strip().lower()
+                    query_or = []
+                    if matched_dev:
+                        if matched_dev.get("device_id") and ObjectId.is_valid(matched_dev.get("device_id")):
+                            query_or.append({"_id": ObjectId(matched_dev["device_id"])})
+                        if matched_dev.get("code"):
+                            query_or.append({"code": matched_dev["code"]})
+                        if matched_dev.get("name"):
+                            query_or.append({"name": matched_dev["name"]})
+                        matched_dev["protocol"] = new_protocol_clean
 
-            # Check if all completed
-            has_pending = any(d.get("status") == "pending" for d in device_results)
-            new_status = doc.get("status", "in_progress")
-            completed_at = doc.get("completed_at")
+                    if ObjectId.is_valid(ack_data.device_id):
+                        query_or.append({"_id": ObjectId(ack_data.device_id)})
+                    else:
+                        query_or.append({"code": ack_data.device_id})
+                        query_or.append({"name": ack_data.device_id})
 
-            if not has_pending:
-                success_count = sum(1 for d in device_results if d.get("status") == "success")
-                if success_count == len(device_results):
-                    new_status = "completed"
-                elif success_count > 0:
-                    new_status = "completed_partial"
-                else:
-                    new_status = "failed"
-                completed_at = now_utc
+                    if query_or:
+                        await db.ota_end_devices.update_one(
+                            {"$or": query_or, "deleted_at": None},
+                            {"$set": {"ota_protocol": new_protocol_clean, "updated_at": now_utc}}
+                        )
+                        logger.info(f"[CONFIG ACK] Synchronized ota_protocol='{new_protocol_clean}' to ota_end_devices for {ack_data.device_id}")
 
-            await db.ota_config_update_requests.update_one(
-                {"_id": ObjectId(request_id)},
-                {
-                    "$set": {
-                        "device_results": device_results,
-                        "status": new_status,
-                        "completed_at": completed_at,
-                        "updated_at": now_utc
+                # Check if all completed
+                has_pending = any(d.get("status") == "pending" for d in device_results)
+                new_status = doc.get("status", "in_progress")
+                completed_at = doc.get("completed_at")
+
+                if not has_pending:
+                    success_count = sum(1 for d in device_results if d.get("status") == "success")
+                    if success_count == len(device_results):
+                        new_status = "completed"
+                    elif success_count > 0:
+                        new_status = "completed_partial"
+                    else:
+                        new_status = "failed"
+                    completed_at = now_utc
+
+                await db.ota_config_update_requests.update_one(
+                    {"_id": ObjectId(request_id)},
+                    {
+                        "$set": {
+                            "device_results": device_results,
+                            "status": new_status,
+                            "completed_at": completed_at,
+                            "updated_at": now_utc
+                        }
                     }
-                }
-            )
+                )
 
-            return await ConfigUpdateRequestService.get_request_by_id(request_id)
-        except HTTPException:
-            raise
-        except Exception as e:
-            tb_str = "".join(traceback.format_tb(e.__traceback__))
-            logger.error(f"{e}\n{tb_str}")
-            raise HTTPException(status_code=500, detail=str(e))
+                return await ConfigUpdateRequestService.get_request_by_id(request_id)
+            except HTTPException:
+                raise
+            except Exception as e:
+                tb_str = "".join(traceback.format_tb(e.__traceback__))
+                logger.error(f"{e}\n{tb_str}")
+                raise HTTPException(status_code=500, detail=str(e))

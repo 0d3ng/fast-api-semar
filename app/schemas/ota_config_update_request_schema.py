@@ -57,10 +57,11 @@ class ConfigUpdateRequestResponse(BaseModel):
     @field_validator('requested_at', 'completed_at', 'inserted_at', 'updated_at', mode='before')
     def convert_datetime(cls, v):
         if isinstance(v, datetime):
+            import pytz
             if v.tzinfo is None:
-                import pytz
                 v = pytz.UTC.localize(v)
-            return v.strftime('%Y-%m-%d %H:%M:%S')
+            jst = pytz.timezone('Asia/Tokyo')
+            return v.astimezone(jst).strftime('%Y-%m-%d %H:%M:%S')
         return v
 
     model_config = ConfigDict(

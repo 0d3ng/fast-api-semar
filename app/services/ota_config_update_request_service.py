@@ -29,8 +29,11 @@ class ConfigUpdateRequestService:
         try:
             now_utc = datetime.now(tz=pytz.UTC)
 
-            # Query target devices
-            device_query = {"deleted_at": None}
+            # Query target devices (only active devices)
+            device_query = {
+                "deleted_at": None,
+                "status": {"$in": ["active", "online"]}
+            }
             if req_data.target_scope == "all" and req_data.edge_id:
                 device_query["edge_ota_id"] = str(req_data.edge_id)
             elif req_data.target_device_ids:
@@ -162,12 +165,19 @@ class ConfigUpdateRequestService:
 
             device_results = doc.get("device_results", [])
             updated = False
+            matched_dev = None
             for dev in device_results:
-                if dev.get("device_id") == ack_data.device_id or dev.get("code") == ack_data.device_id:
+                if (
+                    dev.get("device_id") == ack_data.device_id
+                    or dev.get("code") == ack_data.device_id
+                    or dev.get("name") == ack_data.device_id
+                    or len(device_results) == 1
+                ):
                     dev["status"] = ack_data.status
                     dev["reason"] = ack_data.reason
                     dev["updated_at"] = now_str
                     updated = True
+                    matched_dev = dev
                     break
 
             if not updated:
@@ -179,6 +189,34 @@ class ConfigUpdateRequestService:
                     "reason": ack_data.reason,
                     "updated_at": now_str
                 })
+
+            # If ACK status is success, sync ota_protocol to ota_end_devices only if it was updated in this request
+            config_payload = doc.get("config_payload", {})
+            new_protocol = config_payload.get("ota_protocol")
+            if ack_data.status == "success" and new_protocol:
+                new_protocol_clean = str(new_protocol).strip().lower()
+                query_or = []
+                if matched_dev:
+                    if matched_dev.get("device_id") and ObjectId.is_valid(matched_dev.get("device_id")):
+                        query_or.append({"_id": ObjectId(matched_dev["device_id"])})
+                    if matched_dev.get("code"):
+                        query_or.append({"code": matched_dev["code"]})
+                    if matched_dev.get("name"):
+                        query_or.append({"name": matched_dev["name"]})
+                    matched_dev["protocol"] = new_protocol_clean
+
+                if ObjectId.is_valid(ack_data.device_id):
+                    query_or.append({"_id": ObjectId(ack_data.device_id)})
+                else:
+                    query_or.append({"code": ack_data.device_id})
+                    query_or.append({"name": ack_data.device_id})
+
+                if query_or:
+                    await db.ota_end_devices.update_one(
+                        {"$or": query_or, "deleted_at": None},
+                        {"$set": {"ota_protocol": new_protocol_clean, "updated_at": now_utc}}
+                    )
+                    logger.info(f"[CONFIG ACK] Synchronized ota_protocol='{new_protocol_clean}' to ota_end_devices for {ack_data.device_id}")
 
             # Check if all completed
             has_pending = any(d.get("status") == "pending" for d in device_results)

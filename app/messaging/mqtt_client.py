@@ -61,6 +61,8 @@ async def on_connect_async(client, userdata, flags, rc):
         client.subscribe(topic_binary, qos=qos)
         client.subscribe("semar/edge/+/devices/heartbeat", qos=qos)
         logger.info(f"Subscribed to edge devices heartbeat topic: semar/edge/+/devices/heartbeat (qos={qos})")
+        client.subscribe("device/ota/config/ack", qos=qos)
+        logger.info(f"Subscribed to device config ack topic: device/ota/config/ack (qos={qos})")
 
         if server and server.parameters and 'topics' in server.parameters:
             topic_sub_device = server.parameters['topics']['subscribe_device']
@@ -259,6 +261,26 @@ def on_message(client, userdata, msg):
                     asyncio.create_task(process_edge_devices_heartbeat(payload_data))
             except Exception as e:
                 logger.error(f"Failed to process edge heartbeat on {msg.topic}: {e}", exc_info=True)
+        elif msg.topic == "device/ota/config/ack":
+            try:
+                raw_payload = msg.payload.decode('utf-8')
+                logger.info(f"Received device config ack on MQTT: {raw_payload}")
+                payload_data = json.loads(raw_payload)
+                req_id = payload_data.get("request_id")
+                from app.schemas.ota_config_update_request_schema import ConfigUpdateAckPayload
+                from app.services.ota_config_update_request_service import ConfigUpdateRequestService
+                ack_payload = ConfigUpdateAckPayload(
+                    device_id=str(payload_data.get("device_id")),
+                    status=payload_data.get("status", "success"),
+                    reason=payload_data.get("reason")
+                )
+                target_loop = event_loop if (event_loop and event_loop.is_running()) else None
+                if target_loop and req_id:
+                    asyncio.run_coroutine_threadsafe(ConfigUpdateRequestService.record_device_ack(req_id, ack_payload), target_loop)
+                elif req_id:
+                    asyncio.create_task(ConfigUpdateRequestService.record_device_ack(req_id, ack_payload))
+            except Exception as e:
+                logger.error(f"Failed to process config ack on {msg.topic}: {e}", exc_info=True)
         elif msg.topic == topic_sub_device:
             device_code = payload
             client.subscribe(topic_sub + device_code, qos=1)
@@ -306,7 +328,6 @@ async def process_edge_devices_heartbeat(payload_data: dict):
 
             update_fields = {
                 "ip_address": dev.get("ip_address"),
-                "status": (dev.get("status") or "active").lower(),
                 "last_update_at": now_utc
             }
             if dev.get("protocol") and dev.get("protocol") != "-":

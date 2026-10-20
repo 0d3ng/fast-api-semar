@@ -50,6 +50,14 @@ class OtaTelemetryService:
                     session_id = str(active_rot["_id"])
                     logger.info(f"Auto-resolved empty rotation session_id to {session_id}")
 
+            if telemetry_data.stage == "already_updated":
+                logger.info(f"[OTA_TELEMETRY] Dropped redundant 'already_updated' telemetry for device {telemetry_data.device_id}")
+                return None
+
+            if not session_id:
+                logger.warning(f"[OTA_TELEMETRY] Dropped telemetry with empty session_id for device {telemetry_data.device_id}")
+                return None
+
             new_telemetry = OtaTelemetry(
                 session_id=session_id,
                 device_id=telemetry_data.device_id,

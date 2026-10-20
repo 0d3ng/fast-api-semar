@@ -364,18 +364,33 @@ class UpdateSessionService:
             if not session:
                 raise HTTPException(status_code=404, detail="UpdateSession or RotationRequest not found")
 
-            new_ack: SessionAck = SessionAck(
-                update_session_id=str(session["_id"]),
-                end_device_id=ack_data.end_device_id,
-                acked_at=now_utc,
-                status=ack_data.status,
-                total_duration_ms=ack_data.total_duration_ms,
-                notes=ack_data.notes,
-                inserted_at=now_utc,
-                inserted_by=user_id
-            )
-            inserted = await db.ota_session_acks.insert_one(new_ack.model_dump(by_alias=True))
-            new_id = inserted.inserted_id
+            existing_ack = await db.ota_session_acks.find_one({
+                "update_session_id": str(session["_id"]),
+                "end_device_id": ack_data.end_device_id
+            })
+
+            ack_dict = {
+                "update_session_id": str(session["_id"]),
+                "end_device_id": ack_data.end_device_id,
+                "acked_at": now_utc,
+                "status": ack_data.status,
+                "total_duration_ms": ack_data.total_duration_ms,
+                "notes": ack_data.notes,
+                "updated_at": now_utc,
+                "updated_by": user_id
+            }
+
+            if existing_ack:
+                new_id = existing_ack["_id"]
+                await db.ota_session_acks.update_one(
+                    {"_id": new_id},
+                    {"$set": ack_dict}
+                )
+            else:
+                ack_dict["inserted_at"] = now_utc
+                ack_dict["inserted_by"] = user_id
+                inserted = await db.ota_session_acks.insert_one(ack_dict)
+                new_id = inserted.inserted_id
 
             if new_id:
                 # Update EndDevice last_update_at and current_firmware_version if status success

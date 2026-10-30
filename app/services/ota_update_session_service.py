@@ -196,23 +196,56 @@ class UpdateSessionService:
                 }
                 manifest = {k: v for k, v in manifest.items() if v is not None}
 
-                # 4. Fetch target devices via session field or EndDeviceService
-                target_devices = session.get("target_devices")
-                if target_devices:
-                    target_device_ids = session.get("target_device_ids") or [
-                        d.get("device_id") for d in target_devices if d.get("device_id")
-                    ]
-                elif session.get("target_device_ids"):
-                    target_device_ids = session.get("target_device_ids")
-                    target_edge_key = str(edge_obj.id) if (edge_obj and edge_obj.id) else edge_id
-                    devices = await EndDeviceService.get_end_devices(
-                        edge_ota_id=target_edge_key,
-                        platform_type=release_doc.platform_type,
-                        status="active"
-                    )
-                    t_set = set(target_device_ids)
-                    matched = [d for d in devices if str(d.id) in t_set or d.code in t_set]
-                    devices_to_use = matched if matched else devices
+                # 4. Fetch target devices via session field or EndDeviceService, strictly filtering active devices
+                target_edge_key = str(edge_obj.id) if (edge_obj and edge_obj.id) else edge_id
+                active_devices = await EndDeviceService.get_end_devices(
+                    edge_ota_id=target_edge_key,
+                    platform_type=release_doc.platform_type,
+                    status="active"
+                )
+                active_map = {}
+                for d in active_devices:
+                    active_map[str(d.id)] = d
+                    if d.code:
+                        active_map[d.code] = d
+
+                raw_target_devices = session.get("target_devices")
+                raw_target_device_ids = session.get("target_device_ids")
+
+                if raw_target_devices:
+                    filtered_targets = []
+                    filtered_ids = []
+                    for td in raw_target_devices:
+                        dev_id = str(td.get("device_id") or "")
+                        code = str(td.get("code") or "")
+                        d_obj = active_map.get(dev_id) or active_map.get(code)
+                        if d_obj:
+                            filtered_ids.append(str(d_obj.id))
+                            filtered_targets.append({
+                                "device_id": str(d_obj.id),
+                                "code": d_obj.code or code,
+                                "ip_address": getattr(d_obj, "ip_address", None) or td.get("ip_address"),
+                                "protocol": getattr(d_obj, "ota_protocol", "multicast") or td.get("protocol") or "multicast"
+                            })
+                    if filtered_targets:
+                        target_devices = filtered_targets
+                        target_device_ids = filtered_ids
+                    else:
+                        target_devices = [
+                            {
+                                "device_id": str(d.id),
+                                "code": d.code,
+                                "ip_address": getattr(d, "ip_address", None),
+                                "protocol": getattr(d, "ota_protocol", "multicast") or "multicast"
+                            }
+                            for d in active_devices
+                        ]
+                        target_device_ids = [str(d.id) for d in active_devices]
+                elif raw_target_device_ids:
+                    t_set = set(str(did) for did in raw_target_device_ids)
+                    matched = [d for d in active_devices if str(d.id) in t_set or d.code in t_set]
+                    devices_to_use = matched if matched else active_devices
+                    target_device_ids = [str(d.id) for d in devices_to_use]
                     target_devices = [
                         {
                             "device_id": str(d.id),
@@ -223,24 +256,16 @@ class UpdateSessionService:
                         for d in devices_to_use
                     ]
                 else:
-                    target_edge_key = str(edge_obj.id) if (edge_obj and edge_obj.id) else edge_id
-                    devices = await EndDeviceService.get_end_devices(
-                        edge_ota_id=target_edge_key,
-                        platform_type=release_doc.platform_type,
-                        status="active"
-                    )
-
+                    devices_to_use = active_devices
                     if release_doc.type == "delta" and release_doc.base_version:
                         matched_devices = [
-                            d for d in devices
+                            d for d in active_devices
                             if d.current_firmware_version == release_doc.base_version
                         ]
                         if matched_devices:
-                            devices = matched_devices
+                            devices_to_use = matched_devices
 
-                    target_device_ids = [
-                        str(d.id) for d in devices
-                    ]
+                    target_device_ids = [str(d.id) for d in devices_to_use]
                     target_devices = [
                         {
                             "device_id": str(d.id),
@@ -248,7 +273,7 @@ class UpdateSessionService:
                             "ip_address": getattr(d, "ip_address", None),
                             "protocol": getattr(d, "ota_protocol", "multicast") or "multicast"
                         }
-                        for d in devices
+                        for d in devices_to_use
                     ]
 
                 manifest["target_device_ids"] = target_device_ids
@@ -481,6 +506,32 @@ class UpdateSessionService:
             edge_id = str(session.get("target_edge_ota_id"))
             target_version = session.get("target_version")
             platform_type = session.get("platform_type")
+
+            # Refresh target devices with currently active devices
+            from app.services.ota_end_device_service import EndDeviceService
+            active_devs = await EndDeviceService.get_end_devices(
+                edge_ota_id=edge_id,
+                platform_type=platform_type,
+                status="active"
+            )
+            if active_devs:
+                t_set = set(str(did) for did in session.get("target_device_ids", []))
+                matched = [d for d in active_devs if str(d.id) in t_set or d.code in t_set] if t_set else active_devs
+                devs_to_use = matched if matched else active_devs
+                update_fields["target_device_ids"] = [str(d.id) for d in devs_to_use]
+                update_fields["target_devices"] = [
+                    {
+                        "device_id": str(d.id),
+                        "code": d.code,
+                        "ip_address": getattr(d, "ip_address", None),
+                        "protocol": getattr(d, "ota_protocol", "multicast") or "multicast"
+                    }
+                    for d in devs_to_use
+                ]
+                await db.ota_update_sessions.update_one(
+                    {"_id": session["_id"]},
+                    {"$set": {"target_device_ids": update_fields["target_device_ids"], "target_devices": update_fields["target_devices"]}}
+                )
 
             payload = json.dumps({
                 "type": "firmware_update",

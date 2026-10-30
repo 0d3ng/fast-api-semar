@@ -213,7 +213,7 @@ def on_message(client, userdata, msg):
             return
 
         payload = msg.payload.decode('utf-8')
-        logger.info(f"Message received: {payload} topic: {msg.topic}")
+        # logger.info(f"Message received: {payload} topic: {msg.topic}")
         if msg.topic in topic_devices:
             data = json.loads(payload)
             token_dev = data.get("token")

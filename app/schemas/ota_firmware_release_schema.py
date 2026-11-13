@@ -36,6 +36,8 @@ class FirmwareReleaseResponse(BaseModel):
     key_generation: int
     signature: Any
     file_name: Optional[str] = Field(default=None, alias='file_path')
+    security_assessment_id: Optional[str] = None
+    security_decision: Optional[str] = None
     inserted_at: Optional[str] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[str] = None

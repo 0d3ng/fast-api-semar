@@ -20,6 +20,8 @@ class FirmwareRelease(BaseModel):
     key_generation: int
     signature: Any
     file_path: Optional[str] = None
+    security_assessment_id: Optional[str] = None
+    security_decision: Optional[str] = None
     inserted_at: Optional[datetime] = None
     inserted_by: Optional[str] = None
     updated_at: Optional[datetime] = None

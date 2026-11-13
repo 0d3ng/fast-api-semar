@@ -40,3 +40,14 @@ GITHUB_REPO_NAME = GITHUB_REPO_NAMES[0] if GITHUB_REPO_NAMES else "firmware-ota-
 GITHUB_WORKFLOW_ID = os.getenv("GITHUB_WORKFLOW_ID", "rotate-key.yml")
 GITHUB_BRANCH = os.getenv("GITHUB_BRANCH", "master")
 OTA_TELEMETRY_TOPIC = os.getenv("OTA_TELEMETRY_TOPIC", "semar/ota/telemetry")
+
+# AI-Assisted Firmware Security Assessment
+SECURITY_GATE_MODE = os.getenv("SECURITY_GATE_MODE", "monitor").strip().lower()
+SECURITY_POLICY_PROFILE = os.getenv("SECURITY_POLICY_PROFILE", "lab").strip().lower()
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434").strip().rstrip("/")
+LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5-coder:14b").strip()
+LLM_TIMEOUT_S = int(os.getenv("LLM_TIMEOUT_S", "120"))
+LLM_NUM_CTX = int(os.getenv("LLM_NUM_CTX", "16384"))
+NVD_API_KEY = os.getenv("NVD_API_KEY", "").strip()
+SECURITY_ENRICH_NETWORK = os.getenv("SECURITY_ENRICH_NETWORK", "true").strip().lower() == "true"
+SEMAR_WEB_URL = os.getenv("SEMAR_WEB_URL", "https://web.sinaungoding.com").strip().rstrip("/")

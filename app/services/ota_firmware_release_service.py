@@ -38,6 +38,7 @@ class FirmwareReleaseService:
         try:
             now_utc = datetime.now(tz=pytz.UTC)
             saved_file_path = None
+            file_name = None
 
             if file:
                 storage_dir = os.path.join(FIRMWARE_FOLDER, "ota")
@@ -48,6 +49,16 @@ class FirmwareReleaseService:
                 content = await file.read()
                 with open(saved_file_path, "wb") as f:
                     f.write(content)
+
+            existing_assessment = await db.ota_security_assessments.find_one(
+                {
+                    "target_version": release_data.target_version,
+                    "platform_type": release_data.platform_type,
+                    "target_hash": release_data.target_hash,
+                    "deleted_at": None,
+                },
+                sort=[("inserted_at", -1)],
+            )
 
             new_release: FirmwareRelease = FirmwareRelease(
                 target_version=release_data.target_version,
@@ -62,12 +73,19 @@ class FirmwareReleaseService:
                 key_generation=release_data.key_generation,
                 signature=release_data.signature,
                 file_path=file_name,
+                security_assessment_id=str(existing_assessment["_id"]) if existing_assessment else None,
+                security_decision=existing_assessment.get("final_decision") if existing_assessment else None,
                 inserted_at=now_utc,
                 inserted_by=user_id
             )
             inserted = await db.ota_firmware_releases.insert_one(new_release.model_dump(by_alias=True))
             new_id = inserted.inserted_id
             if new_id:
+                if existing_assessment:
+                    await db.ota_security_assessments.update_one(
+                        {"_id": existing_assessment["_id"]},
+                        {"$addToSet": {"release_ids": str(new_id)}},
+                    )
                 return FirmwareReleaseResponse(
                     _id=new_id,
                     target_version=new_release.target_version,
@@ -82,6 +100,8 @@ class FirmwareReleaseService:
                     key_generation=new_release.key_generation,
                     signature=new_release.signature,
                     file_name=file_name,
+                    security_assessment_id=new_release.security_assessment_id,
+                    security_decision=new_release.security_decision,
                     inserted_at=now_utc,
                     inserted_by=user_id
                 )
@@ -191,6 +211,13 @@ class FirmwareReleaseService:
                     detail="No 'full' release found for this target_version/platform_type"
                 )
 
+            from app.services.ota_security_assessment_service import SecurityGate
+            await SecurityGate.check(
+                target_version=target_version,
+                platform_type=platform_type,
+                target_hash=full_release.target_hash,
+            )
+
             edges = await EdgeOtaService.get_all_edge_otas(active=True)
             server = await ServerService.get_server_config(MESSAGE_BROKER, environment=ENV)
             if not server:
@@ -251,7 +278,7 @@ class FirmwareReleaseService:
                         target_devices=group_devices_info,
                         status="pending"
                     )
-                    await UpdateSessionService.create_session(session_data, sys_token)
+                    await UpdateSessionService.create_session(session_data, sys_token, skip_security_gate=True)
 
                     sessions_created.append({
                         "session_id": session_id,

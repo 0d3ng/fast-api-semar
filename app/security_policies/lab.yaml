@@ -1,0 +1,70 @@
+profile: lab
+description: "SEMAR Lab profile — hardware security fuses (Secure Boot, Flash Encryption) are warnings; critical CVEs and verified secrets still block."
+
+thresholds:
+  min_sbom_coverage_percent: 90.0
+  block_cvss_min: 9.0
+  review_cvss_min: 7.0
+  review_epss_min: 0.10
+
+rules:
+  - id: VERIFIED_SECRET
+    description: "Hardcoded secret or credential detected"
+    match:
+      category: secret
+    decision: BLOCKED
+
+  - id: CRITICAL_OR_KEV_CVE
+    description: "Critical CVE (CVSS >= 9.0) or CISA KEV vulnerability in linked component"
+    match:
+      category: dependency_cve
+      any_of:
+        - cvss_gte: 9.0
+        - kev: true
+    decision: BLOCKED
+
+  - id: HIGH_CVE_OR_EPSS
+    description: "High severity CVE (CVSS 7.0-8.9) or elevated EPSS (>= 0.10)"
+    match:
+      category: dependency_cve
+      any_of:
+        - cvss_gte: 7.0
+        - epss_gte: 0.10
+    decision: REVIEW_REQUIRED
+
+  - id: HIGH_SAST_FINDING
+    description: "High/critical severity static code analysis finding"
+    match:
+      category: code
+      severities: [critical, high]
+    decision: REVIEW_REQUIRED
+
+  - id: INSECURE_TLS_OR_OTA_TRANSPORT
+    description: "Insecure TLS / cert validation skip / plaintext HTTP OTA configuration"
+    match:
+      category: config
+      rule_ids:
+        - ESP_TLS_INSECURE
+        - HTTPS_OTA_ALLOW_HTTP
+        - SKIP_CERT_CHECK
+        - PLAIN_HTTP_OTA_URL
+    decision: REVIEW_REQUIRED
+
+  - id: HW_SECURITY_FLAGS_DISABLED
+    description: "Secure Boot, Flash Encryption, or App Rollback disabled (warning only in lab)"
+    match:
+      category: config
+      rule_ids:
+        - SECURE_BOOT_DISABLED
+        - FLASH_ENCRYPTION_DISABLED
+        - APP_ROLLBACK_DISABLED
+    decision: PASS
+    warning: true
+
+  - id: LOW_SBOM_COVERAGE
+    description: "SBOM component version/CPE coverage below threshold"
+    match:
+      metric: sbom_coverage_lt
+      value: 90.0
+    decision: REVIEW_REQUIRED
+

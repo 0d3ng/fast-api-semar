@@ -23,8 +23,21 @@ logger = get_logger(__name__)
 
 class UpdateSessionService:
     @staticmethod
-    async def create_session(session_data: UpdateSessionCreate, current_user: TokenData):
+    async def create_session(session_data: UpdateSessionCreate, current_user: TokenData, skip_security_gate: bool = False):
         try:
+            if not skip_security_gate and session_data.target_version and session_data.type != "rotation":
+                target_hash = None
+                if session_data.firmware_release_id and ObjectId.is_valid(session_data.firmware_release_id):
+                    rel_doc = await db.ota_firmware_releases.find_one({"_id": ObjectId(session_data.firmware_release_id)})
+                    if rel_doc:
+                        target_hash = rel_doc.get("target_hash")
+                from app.services.ota_security_assessment_service import SecurityGate
+                await SecurityGate.check(
+                    target_version=session_data.target_version,
+                    platform_type=session_data.platform_type,
+                    target_hash=target_hash,
+                )
+
             now_utc = datetime.now(tz=pytz.UTC)
             new_session: UpdateSession = UpdateSession(
                 session_id=str(session_data.session_id),
@@ -61,6 +74,8 @@ class UpdateSessionService:
                     inserted_by=current_user.user_id
                 )
             raise HTTPException(status_code=500, detail="Insert update session failed")
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Failed to create update session: {e}")
             tb_str = ''.join(traceback.format_tb(e.__traceback__))
@@ -487,6 +502,20 @@ class UpdateSessionService:
 
             if session.get("status") in ("completed", "success"):
                 raise HTTPException(status_code=400, detail="Cannot retry a completed update session")
+
+            if session.get("target_version") and session.get("type") != "rotation":
+                target_hash = None
+                fw_rel_id = session.get("firmware_release_id")
+                if fw_rel_id and ObjectId.is_valid(str(fw_rel_id)):
+                    rel_doc = await db.ota_firmware_releases.find_one({"_id": ObjectId(str(fw_rel_id))})
+                    if rel_doc:
+                        target_hash = rel_doc.get("target_hash")
+                from app.services.ota_security_assessment_service import SecurityGate
+                await SecurityGate.check(
+                    target_version=session.get("target_version"),
+                    platform_type=session.get("platform_type"),
+                    target_hash=target_hash,
+                )
 
             now_utc = datetime.now(tz=pytz.UTC)
             update_fields = {

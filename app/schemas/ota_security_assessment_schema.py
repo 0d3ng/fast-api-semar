@@ -32,6 +32,7 @@ class NormalizedFinding(BaseModel):
     cvss: Optional[float] = None
     epss: Optional[float] = None
     kev: bool = False
+    reachable: bool = True
     reachable_hint: Optional[str] = None
     title: str = ""
     description: str = ""

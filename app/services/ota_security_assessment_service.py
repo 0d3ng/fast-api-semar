@@ -20,7 +20,7 @@ from app.schemas.ota_security_assessment_schema import (
 )
 from app.services.security.ai_analyzer import analyze_findings_with_ai
 from app.services.security.decision import merge_policy_and_ai, workflow_state_for_decision
-from app.services.security.enricher import enrich_findings
+from app.services.security.enricher import apply_reachability, enrich_findings
 from app.services.security.github_issue_client import create_fix_issue
 from app.services.security.normalizer import compute_diff, normalize_evidence_bundle
 from app.services.security.policy_engine import evaluate_policy
@@ -189,7 +189,11 @@ class SecurityAssessmentService:
                 config_docs.append(_parse_json_bytes(raw, config_file.filename or "config"))
 
             _, findings, summary = normalize_evidence_bundle(sbom_data, cve_docs, sarif_docs, config_docs)
-            findings = await enrich_findings(findings, sdkconfig_flags=metadata.sdkconfig_flags)
+            findings = await enrich_findings(
+                findings,
+                sdkconfig_flags=metadata.sdkconfig_flags,
+                platform_type=metadata.platform_type,
+            )
             policy_result = evaluate_policy(findings, summary, profile=SECURITY_POLICY_PROFILE)
 
             # Find previous assessment for differential tracking & superseding fix_requested
@@ -292,14 +296,20 @@ class SecurityAssessmentService:
         try:
             findings = doc.get("findings") or []
             summary = doc.get("summary") or {}
+            source_info = doc.get("source") or {}
+            findings = apply_reachability(
+                findings,
+                sdkconfig_flags=source_info.get("sdkconfig_flags"),
+                platform_type=doc.get("platform_type") or "esp32",
+            )
             policy_result = doc.get("policy_result") or {}
-            if profile_override:
-                policy_result = evaluate_policy(findings, summary, profile=profile_override)
+            target_profile = profile_override or policy_result.get("profile") or SECURITY_POLICY_PROFILE
+            policy_result = evaluate_policy(findings, summary, profile=target_profile)
 
             ai_result = None
             if run_ai:
                 source_meta = {
-                    **(doc.get("source") or {}),
+                    **source_info,
                     "target_version": doc.get("target_version"),
                     "platform_type": doc.get("platform_type"),
                 }
@@ -318,6 +328,7 @@ class SecurityAssessmentService:
 
             now_utc = datetime.now(tz=pytz.UTC)
             update_fields: Dict[str, Any] = {
+                "findings": findings,
                 "policy_result": policy_result,
                 "ai_result": ai_result,
                 "final_decision": final_decision,

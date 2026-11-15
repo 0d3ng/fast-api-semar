@@ -11,6 +11,7 @@ from app.schemas.ota_security_assessment_schema import AssessmentReviewRequest
 from app.services.ota_security_assessment_service import SecurityAssessmentService, SecurityGate
 from app.services.security.ai_analyzer import analyze_findings_with_ai, validate_and_ground_output
 from app.services.security.decision import merge_policy_and_ai
+from app.services.security.enricher import apply_reachability
 from app.services.security.normalizer import compute_diff, normalize_evidence_bundle
 from app.services.security.policy_engine import evaluate_policy
 from app.utils.config import SEMAR_API_TOKEN
@@ -109,6 +110,56 @@ class TestSecurityNormalizerAndPolicy(unittest.TestCase):
         self.assertEqual(diff["new"], ["F-3"])
         self.assertEqual(diff["resolved"], ["F-1"])
         self.assertEqual(diff["persisting"], ["F-2"])
+
+    def test_reachability_filters_disabled_and_arch_incompatible_cves(self):
+        findings = [
+            {
+                "fid": "F-bt",
+                "category": "dependency_cve",
+                "rule_id": "CVE-2026-45813",
+                "severity": "high",
+                "cvss": 8.8,
+                "component": {"name": "Apache Mynewt Nimble", "version": "1.6.0"},
+                "title": "CVE-2026-45813 in Apache Mynewt Nimble",
+                "description": "BLE BASS service out-of-bounds write",
+            },
+            {
+                "fid": "F-freertos-mpu",
+                "category": "dependency_cve",
+                "rule_id": "CVE-2026-77234",
+                "severity": "critical",
+                "cvss": 9.3,
+                "component": {"name": "freertos", "version": "10.5.1"},
+                "title": "CVE-2026-77234 in freertos",
+                "description": "Improper input validation on MPU-enabled ports",
+            },
+            {
+                "fid": "F-wpa-ubuntu",
+                "category": "dependency_cve",
+                "rule_id": "CVE-2024-5290",
+                "severity": "high",
+                "cvss": 7.8,
+                "component": {"name": "wpa_supplicant", "version": "2.10"},
+                "title": "CVE-2024-5290 in wpa_supplicant",
+                "description": "Ubuntu dbus shared objects privilege escalation",
+            },
+            {
+                "fid": "F-lwip-v6",
+                "category": "dependency_cve",
+                "rule_id": "CVE-2020-22283",
+                "severity": "high",
+                "cvss": 7.5,
+                "component": {"name": "lwip", "version": "2.2.0"},
+                "title": "CVE-2020-22283 in lwip",
+                "description": "Buffer overflow in icmp6_send_response_with_addrs_and_netif",
+            },
+        ]
+        sdkconfig_flags = {"CONFIG_BT_ENABLED": False, "CONFIG_LWIP_IPV6": False}
+        enriched = apply_reachability(findings, sdkconfig_flags=sdkconfig_flags, platform_type="esp32")
+        self.assertTrue(all(f["reachable"] is False and f.get("reachable_hint") for f in enriched))
+
+        summary = {"components": 180, "sbom_coverage": 96.3}
+        self.assertEqual(evaluate_policy(enriched, summary, profile="lab")["decision"], "PASS")
 
 
 class TestMonotonicAndAiGrounding(unittest.IsolatedAsyncioTestCase):

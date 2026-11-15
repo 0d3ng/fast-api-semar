@@ -38,6 +38,8 @@ def _matches_any_condition(finding: Dict[str, Any], cond: Dict[str, Any]) -> boo
 
 
 def _finding_matches_rule(finding: Dict[str, Any], match_cfg: Dict[str, Any]) -> bool:
+    if finding.get("reachable") is False:
+        return False
     if "category" in match_cfg and finding.get("category") != match_cfg["category"]:
         return False
     if "rule_ids" in match_cfg and finding.get("rule_id") not in match_cfg["rule_ids"]:

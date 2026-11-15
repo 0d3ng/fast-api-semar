@@ -24,6 +24,28 @@ STRICT RULES:
 5. Output ONLY valid JSON matching the requested schema."""
 
 
+def _prioritize_findings_for_prompt(findings: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], int]:
+    """Select high-signal findings for the LLM context window, omitting excess Low noise."""
+    sev_rank = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    non_low = [f for f in findings if str(f.get("severity") or "medium").lower() not in ("low", "info")]
+    low_items = [f for f in findings if str(f.get("severity") or "").lower() in ("low", "info")]
+
+    non_low.sort(
+        key=lambda f: (
+            0 if f.get("reachable", True) is not False else 1,
+            sev_rank.get(str(f.get("severity") or "medium").lower(), 2),
+            0 if f.get("category") in ("secret", "code", "config") else 1,
+        )
+    )
+
+    selected = non_low[:MAX_FINDINGS_IN_PROMPT]
+    if len(selected) < MAX_FINDINGS_IN_PROMPT:
+        selected.extend(low_items[: MAX_FINDINGS_IN_PROMPT - len(selected)])
+
+    omitted_low = max(0, len(low_items) - max(0, len(selected) - len(non_low)))
+    return selected, omitted_low
+
+
 def _build_context_payload(
     source_meta: Dict[str, Any],
     findings: List[Dict[str, Any]],
@@ -31,7 +53,7 @@ def _build_context_payload(
     policy_result: Dict[str, Any],
     diff_vs_previous: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
-    top_findings = findings[:MAX_FINDINGS_IN_PROMPT]
+    top_findings, omitted_low = _prioritize_findings_for_prompt(findings)
     compact_findings = []
     for f in top_findings:
         compact_findings.append({
@@ -45,6 +67,7 @@ def _build_context_payload(
             "cvss": f.get("cvss"),
             "epss": f.get("epss"),
             "kev": f.get("kev", False),
+            "reachable": f.get("reachable", True),
             "reachable_hint": f.get("reachable_hint"),
             "title": f.get("title"),
             "description": f.get("description"),
@@ -68,6 +91,7 @@ def _build_context_payload(
             "triggered_rules": policy_result.get("triggered_rules", []),
         },
         "summary": summary,
+        "omitted_low_noise_count": omitted_low,
         "diff_vs_previous": diff_vs_previous,
         "findings": compact_findings,
     }

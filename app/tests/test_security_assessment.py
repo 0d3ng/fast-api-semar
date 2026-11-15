@@ -9,7 +9,12 @@ from starlette.testclient import TestClient
 from app.main import app
 from app.schemas.ota_security_assessment_schema import AssessmentReviewRequest
 from app.services.ota_security_assessment_service import SecurityAssessmentService, SecurityGate
-from app.services.security.ai_analyzer import analyze_findings_with_ai, validate_and_ground_output
+from app.services.security.ai_analyzer import (
+    _prioritize_findings_for_prompt,
+    analyze_findings_with_ai,
+    validate_and_ground_output,
+)
+from app.services.security.llm_client import OllamaClient
 from app.services.security.decision import merge_policy_and_ai
 from app.services.security.enricher import apply_reachability
 from app.services.security.normalizer import compute_diff, normalize_evidence_bundle
@@ -161,8 +166,39 @@ class TestSecurityNormalizerAndPolicy(unittest.TestCase):
         summary = {"components": 180, "sbom_coverage": 96.3}
         self.assertEqual(evaluate_policy(enriched, summary, profile="lab")["decision"], "PASS")
 
+    def test_prompt_prioritizes_reachable_high_severity_over_low_noise(self):
+        findings = [
+            {"fid": f"F-low-{i}", "category": "code", "severity": "low", "reachable": True}
+            for i in range(50)
+        ] + [
+            {"fid": "F-high-1", "category": "dependency_cve", "severity": "high", "reachable": True},
+            {"fid": "F-crit-unreach", "category": "dependency_cve", "severity": "critical", "reachable": False},
+        ]
+        selected, omitted_low = _prioritize_findings_for_prompt(findings)
+        self.assertEqual(selected[0]["fid"], "F-high-1")
+        self.assertEqual(selected[1]["fid"], "F-crit-unreach")
+        self.assertEqual(omitted_low, 12)
+
 
 class TestMonotonicAndAiGrounding(unittest.IsolatedAsyncioTestCase):
+    @patch("app.services.security.llm_client.httpx.AsyncClient")
+    async def test_ollama_client_disables_think_for_qwen3(self, mock_async_client):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.json.return_value = {"model": "qwen3:8b", "message": {"content": "{}"}}
+        mock_client_inst = AsyncMock()
+        mock_client_inst.post = AsyncMock(return_value=mock_resp)
+        mock_async_client.return_value.__aenter__.return_value = mock_client_inst
+
+        client_qwen3 = OllamaClient(base_url="http://host.docker.internal:11434", model="qwen3:8b")
+        await client_qwen3.chat_json("sys", "usr", {"type": "object"})
+        sent_payload = mock_client_inst.post.call_args.kwargs["json"]
+        self.assertEqual(sent_payload.get("think"), False)
+
+        client_qwen25 = OllamaClient(base_url="http://host.docker.internal:11434", model="qwen2.5-coder:14b")
+        await client_qwen25.chat_json("sys", "usr", {"type": "object"})
+        sent_payload_25 = mock_client_inst.post.call_args.kwargs["json"]
+        self.assertNotIn("think", sent_payload_25)
     def test_monotonic_decision_merge(self):
         self.assertEqual(merge_policy_and_ai("PASS", "REVIEW_REQUIRED"), ("REVIEW_REQUIRED", "ai_escalation"))
         self.assertEqual(merge_policy_and_ai("PASS", "BLOCKED"), ("REVIEW_REQUIRED", "ai_escalation"))

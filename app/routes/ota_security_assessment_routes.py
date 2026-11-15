@@ -16,6 +16,7 @@ from app.schemas.ota_security_assessment_schema import (
 )
 from app.services.ota_firmware_release_service import FirmwareReleaseService
 from app.services.ota_security_assessment_service import SecurityAssessmentService
+from app.services.security.llm_client import OllamaClient
 from app.utils.config import SEMAR_API_TOKEN
 
 router = APIRouter()
@@ -104,6 +105,12 @@ async def list_security_assessments(
         final_decision=final_decision,
         workflow_state=workflow_state,
     )
+
+
+@router.get("/security-assessments/ai/health")
+async def get_ai_analyzer_health(authorization: str = Header(...)):
+    _authorize_ci_or_jwt(authorization)
+    return await OllamaClient().health()
 
 
 @router.get("/security-assessments/{assessment_id}", response_model=SecurityAssessmentResponse)

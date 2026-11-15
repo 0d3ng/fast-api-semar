@@ -1,7 +1,7 @@
-"""Local Ollama LLM client with structured JSON schema output."""
+"""Local Ollama LLM client with structured JSON schema output and health probe."""
 
 import time
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 import httpx
 
@@ -9,7 +9,7 @@ from app.utils.config import LLM_BASE_URL, LLM_MODEL, LLM_TIMEOUT_S, LLM_NUM_CTX
 
 
 class OllamaClient:
-    """Async adapter for local Ollama /api/chat endpoint."""
+    """Async adapter for local Ollama /api/chat and /api/tags endpoints."""
 
     def __init__(
         self,
@@ -23,6 +23,36 @@ class OllamaClient:
         self.timeout_s = timeout_s or LLM_TIMEOUT_S
         self.num_ctx = num_ctx or LLM_NUM_CTX
 
+    async def health(self) -> Dict[str, Any]:
+        """Probe Ollama connectivity and verify whether the configured model is pulled."""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"{self.base_url}/api/tags")
+                resp.raise_for_status()
+                models: List[str] = [
+                    m.get("name") for m in (resp.json().get("models") or []) if m.get("name")
+                ]
+            installed = any(
+                m == self.model or m.split(":")[0] == self.model.split(":")[0] and m == self.model
+                for m in models
+            )
+            return {
+                "ok": True,
+                "base_url": self.base_url,
+                "configured_model": self.model,
+                "model_installed": installed,
+                "available_models": models,
+            }
+        except Exception as exc:
+            return {
+                "ok": False,
+                "base_url": self.base_url,
+                "configured_model": self.model,
+                "model_installed": False,
+                "available_models": [],
+                "error": str(exc),
+            }
+
     async def chat_json(
         self,
         system_prompt: str,
@@ -30,7 +60,7 @@ class OllamaClient:
         json_schema: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Call Ollama /api/chat enforcing structured JSON output."""
-        payload = {
+        payload: Dict[str, Any] = {
             "model": self.model,
             "stream": False,
             "format": json_schema,
@@ -44,6 +74,9 @@ class OllamaClient:
                 {"role": "user", "content": user_prompt},
             ],
         }
+        # Disable extended thinking tokens on qwen3 models for fast deterministic JSON schema responses
+        if "qwen3" in (self.model or "").lower():
+            payload["think"] = False
 
         t0 = time.perf_counter()
         async with httpx.AsyncClient(timeout=float(self.timeout_s)) as client:
@@ -61,4 +94,3 @@ class OllamaClient:
             "prompt_tokens": data.get("prompt_eval_count", 0),
             "completion_tokens": data.get("eval_count", 0),
         }
-

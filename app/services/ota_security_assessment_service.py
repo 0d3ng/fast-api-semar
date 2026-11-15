@@ -306,6 +306,16 @@ class SecurityAssessmentService:
             target_profile = profile_override or policy_result.get("profile") or SECURITY_POLICY_PROFILE
             policy_result = evaluate_policy(findings, summary, profile=target_profile)
 
+            logger.info(
+                "Running AI stage: assessment_id=%s target=%s profile=%s run_ai=%s model_override=%s findings=%d",
+                assessment_id,
+                doc.get("target_version"),
+                target_profile,
+                run_ai,
+                model_override,
+                len(findings),
+            )
+
             ai_result = None
             if run_ai:
                 source_meta = {

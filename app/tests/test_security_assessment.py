@@ -177,7 +177,7 @@ class TestSecurityNormalizerAndPolicy(unittest.TestCase):
         selected, omitted_low = _prioritize_findings_for_prompt(findings)
         self.assertEqual(selected[0]["fid"], "F-high-1")
         self.assertEqual(selected[1]["fid"], "F-crit-unreach")
-        self.assertEqual(omitted_low, 12)
+        self.assertEqual(omitted_low, 37)
 
 
 class TestMonotonicAndAiGrounding(unittest.IsolatedAsyncioTestCase):

@@ -6,6 +6,9 @@ from typing import Dict, Any, List, Optional
 import httpx
 
 from app.utils.config import LLM_BASE_URL, LLM_MODEL, LLM_TIMEOUT_S, LLM_NUM_CTX
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class OllamaClient:
@@ -78,12 +81,43 @@ class OllamaClient:
         if "qwen3" in (self.model or "").lower():
             payload["think"] = False
 
+        prompt_chars = len(system_prompt) + len(user_prompt)
+        logger.info(
+            "Ollama request -> url=%s/api/chat model=%s prompt_chars=%d think=%s num_ctx=%d timeout_s=%s",
+            self.base_url,
+            self.model,
+            prompt_chars,
+            payload.get("think"),
+            self.num_ctx,
+            self.timeout_s,
+        )
         t0 = time.perf_counter()
-        async with httpx.AsyncClient(timeout=float(self.timeout_s)) as client:
-            resp = await client.post(f"{self.base_url}/api/chat", json=payload)
-            resp.raise_for_status()
-            data = resp.json()
+        try:
+            async with httpx.AsyncClient(timeout=float(self.timeout_s)) as client:
+                resp = await client.post(f"{self.base_url}/api/chat", json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+        except Exception as exc:
+            latency_ms = int((time.perf_counter() - t0) * 1000)
+            err_detail = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
+            logger.warning(
+                "Ollama request failed -> url=%s/api/chat model=%s prompt_chars=%d latency_ms=%d error=%s",
+                self.base_url,
+                self.model,
+                prompt_chars,
+                latency_ms,
+                err_detail,
+            )
+            raise
         latency_ms = int((time.perf_counter() - t0) * 1000)
+        logger.info(
+            "Ollama response <- model=%s status=ok latency_ms=%d prompt_tokens=%s completion_tokens=%s resp_chars=%d",
+            data.get("model") or self.model,
+            latency_ms,
+            data.get("prompt_eval_count"),
+            data.get("eval_count"),
+            len((data.get("message") or {}).get("content") or ""),
+        )
 
         message = data.get("message") or {}
         content = message.get("content") or ""

@@ -2,10 +2,13 @@
 
 import hashlib
 import json
+import os
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 
 from app.schemas.ota_security_assessment_schema import AiAnalysisOutput
 from app.services.security.llm_client import OllamaClient
+from app.utils.config import FIRMWARE_FOLDER
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -148,6 +151,136 @@ def validate_and_ground_output(
     return output, validation_meta
 
 
+def _log_analysis_parameters(
+    context_payload: Dict[str, Any],
+    total_findings: int,
+    input_hash: str,
+) -> None:
+    """Log structured breakdown of all input parameters sent to the LLM for audit and research reporting."""
+    rel = context_payload.get("release_context") or {}
+    pol = context_payload.get("policy_baseline") or {}
+    summ = context_payload.get("summary") or {}
+    diff = context_payload.get("diff_vs_previous")
+    sel_findings = context_payload.get("findings") or []
+
+    triggered_rule_ids = [
+        r.get("rule_id") or r.get("id") or str(r)
+        for r in (pol.get("triggered_rules") or [])
+    ]
+    finding_digests = [
+        {
+            "fid": f.get("fid"),
+            "cat": f.get("category"),
+            "sev": f.get("severity"),
+            "reach": f.get("reachable"),
+            "id": f.get("cve") or f.get("rule_id"),
+            "tools": f.get("tools"),
+        }
+        for f in sel_findings
+    ]
+
+    param_summary = {
+        "input_hash": input_hash,
+        "prompt_version": PROMPT_VERSION,
+        "release_context": {
+            "target_version": rel.get("target_version"),
+            "platform_type": rel.get("platform_type"),
+            "idf_version": rel.get("idf_version"),
+            "ota_protocol": rel.get("ota_protocol"),
+            "sdkconfig_flags": rel.get("sdkconfig_flags"),
+            "crypto_controls": rel.get("crypto_controls"),
+        },
+        "policy_baseline": {
+            "profile": pol.get("profile"),
+            "decision": pol.get("decision"),
+            "triggered_rules": triggered_rule_ids,
+        },
+        "summary_metrics": summ,
+        "omitted_low_noise_count": context_payload.get("omitted_low_noise_count", 0),
+        "diff_vs_previous": diff,
+        "findings_selection": {
+            "selected_count": len(sel_findings),
+            "total_findings": total_findings,
+            "max_in_prompt": MAX_FINDINGS_IN_PROMPT,
+            "items": finding_digests,
+        },
+    }
+    logger.info(
+        "AI analyzer input parameters -> %s",
+        json.dumps(param_summary, ensure_ascii=False),
+    )
+
+
+def _log_and_persist_analysis_trace(
+    context_payload: Dict[str, Any],
+    input_hash: str,
+    client: OllamaClient,
+    prompt_chars: int,
+    attempt: int,
+    result_dict: Dict[str, Any],
+) -> None:
+    """Log LLM output metrics and persist a research/audit trace JSON record."""
+    triage_items = result_dict.get("triage") or []
+    triage_counts: Dict[str, int] = {}
+    for t in triage_items:
+        rel = t.get("relevance") if isinstance(t, dict) else getattr(t, "relevance", "unknown")
+        triage_counts[str(rel)] = triage_counts.get(str(rel), 0) + 1
+
+    output_metrics = {
+        "status": result_dict.get("status"),
+        "attempt": attempt,
+        "model": result_dict.get("model"),
+        "prompt_version": result_dict.get("prompt_version"),
+        "input_hash": input_hash,
+        "latency_ms": result_dict.get("latency_ms"),
+        "tokens": result_dict.get("tokens"),
+        "overall_risk": result_dict.get("overall_risk"),
+        "recommended_decision": result_dict.get("recommended_decision"),
+        "confidence": result_dict.get("confidence"),
+        "validation": result_dict.get("validation"),
+        "triage_breakdown": triage_counts,
+        "triage_count": len(triage_items),
+        "correlations_count": len(result_dict.get("correlations") or []),
+        "mitigations_count": len(result_dict.get("mitigations") or []),
+    }
+    logger.info(
+        "AI analyzer output summary <- %s",
+        json.dumps(output_metrics, ensure_ascii=False),
+    )
+
+    try:
+        trace_record = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "llm_config": {
+                "base_url": getattr(client, "base_url", None),
+                "model": result_dict.get("model") or getattr(client, "model", None),
+                "temperature": 0,
+                "seed": 42,
+                "num_ctx": getattr(client, "num_ctx", None),
+                "timeout_s": getattr(client, "timeout_s", None),
+                "think": False if "qwen3" in str(getattr(client, "model", "")).lower() else None,
+                "prompt_version": PROMPT_VERSION,
+                "prompt_chars": prompt_chars,
+                "input_hash": input_hash,
+            },
+            "input_parameters": context_payload,
+            "output_result": result_dict,
+        }
+        os.makedirs("logs", exist_ok=True)
+        with open(os.path.join("logs", "ai_security_analysis.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps(trace_record, ensure_ascii=False) + "\n")
+
+        target_ver = (context_payload.get("release_context") or {}).get("target_version")
+        if target_ver:
+            safe_ver = str(target_ver).replace("/", "_").replace("\\", "_")
+            ev_dir = os.path.join(FIRMWARE_FOLDER or "firmware", "security", safe_ver)
+            os.makedirs(ev_dir, exist_ok=True)
+            with open(os.path.join(ev_dir, "ai_analysis_trace.json"), "w", encoding="utf-8") as f:
+                json.dump(trace_record, f, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        logger.debug("Could not persist AI analysis trace file: %s", exc)
+
+
 async def analyze_findings_with_ai(
     source_meta: Dict[str, Any],
     findings: List[Dict[str, Any]],
@@ -168,6 +301,12 @@ async def analyze_findings_with_ai(
     serialized_context = json.dumps(context_payload, ensure_ascii=False, sort_keys=True)
     input_hash = hashlib.sha256(serialized_context.encode("utf-8")).hexdigest()[:16]
     valid_fids = {f["fid"] for f in findings if f.get("fid")}
+
+    _log_analysis_parameters(
+        context_payload=context_payload,
+        total_findings=len(findings),
+        input_hash=input_hash,
+    )
 
     if not findings:
         return {
@@ -206,6 +345,7 @@ async def analyze_findings_with_ai(
                     f"{user_prompt}\n\nPrevious response failed validation ({last_error}). "
                     "Fix the JSON and ONLY use fid values present in the findings list."
                 )
+            prompt_chars = len(SYSTEM_PROMPT) + len(prompt_to_send)
             logger.info(
                 "AI analyzer calling Ollama: attempt=%d/2 model=%s base_url=%s prompt_findings=%d/%d prompt_chars=%d",
                 attempt + 1,
@@ -213,20 +353,11 @@ async def analyze_findings_with_ai(
                 client.base_url,
                 len(context_payload.get("findings", [])),
                 len(valid_fids),
-                len(SYSTEM_PROMPT) + len(prompt_to_send),
+                prompt_chars,
             )
             resp = await client.chat_json(SYSTEM_PROMPT, prompt_to_send, schema)
             output, val_meta = validate_and_ground_output(resp["content"], valid_fids)
-            logger.info(
-                "AI analyzer succeeded: attempt=%d model=%s risk=%s recommendation=%s latency_ms=%s rejected_items=%s",
-                attempt + 1,
-                resp.get("model"),
-                getattr(output, "overall_risk", None),
-                getattr(output, "recommended_decision", None),
-                resp.get("latency_ms"),
-                val_meta.get("rejected_items"),
-            )
-            return {
+            result_dict = {
                 "status": "completed",
                 "model": resp["model"],
                 "prompt_version": PROMPT_VERSION,
@@ -239,11 +370,20 @@ async def analyze_findings_with_ai(
                     "completion": resp["completion_tokens"],
                 },
             }
+            _log_and_persist_analysis_trace(
+                context_payload=context_payload,
+                input_hash=input_hash,
+                client=client,
+                prompt_chars=prompt_chars,
+                attempt=attempt + 1,
+                result_dict=result_dict,
+            )
+            return result_dict
         except Exception as exc:
             last_error = f"{type(exc).__name__}: {exc}" if str(exc) else repr(exc)
             logger.warning(f"AI analyzer attempt {attempt + 1} failed: {last_error}")
 
-    return {
+    fallback_dict = {
         "status": "ai_unavailable",
         "model": client.model,
         "prompt_version": PROMPT_VERSION,
@@ -259,4 +399,13 @@ async def analyze_findings_with_ai(
         "latency_ms": 0,
         "tokens": {"prompt": 0, "completion": 0},
     }
+    _log_and_persist_analysis_trace(
+        context_payload=context_payload,
+        input_hash=input_hash,
+        client=client,
+        prompt_chars=len(SYSTEM_PROMPT) + len(user_prompt),
+        attempt=2,
+        result_dict=fallback_dict,
+    )
+    return fallback_dict
 

@@ -336,6 +336,19 @@ def build_summary(sbom_meta: Dict[str, Any], findings: List[Dict[str, Any]]) -> 
     }
 
 
+def finding_logical_key(f: Dict[str, Any]) -> str:
+    """Line-number-independent identity key for config/CVE/code findings across minor line shifts."""
+    cat = str(f.get("category") or "")
+    rule_or_cve = str(f.get("cve") or f.get("rule_id") or f.get("title") or "")
+    comp = (f.get("component") or {}).get("name") or ""
+    loc_file = (f.get("location") or {}).get("file") or ""
+    if cat == "config":
+        return f"config|{rule_or_cve}|{loc_file}"
+    if cat == "dependency_cve":
+        return f"dependency_cve|{rule_or_cve}|{comp}"
+    return str(f.get("fid") or f"{cat}|{rule_or_cve}|{loc_file}")
+
+
 def compute_diff(
     current_findings: List[Dict[str, Any]],
     previous_assessment: Optional[Dict[str, Any]],
@@ -343,15 +356,35 @@ def compute_diff(
     """Compare finding fingerprints with the previous assessment of the same platform."""
     if not previous_assessment:
         return None
-    prev_fids = {f["fid"] for f in (previous_assessment.get("findings") or []) if f.get("fid")}
+    prev_findings = previous_assessment.get("findings") or []
+    prev_fids = {f["fid"] for f in prev_findings if f.get("fid")}
+    prev_keys = {finding_logical_key(f) for f in prev_findings}
     curr_fids = {f["fid"] for f in current_findings if f.get("fid")}
+
+    new_fids = []
+    persisting_fids = []
+    for f in current_findings:
+        fid = f.get("fid")
+        if not fid:
+            continue
+        if fid in prev_fids or finding_logical_key(f) in prev_keys:
+            persisting_fids.append(fid)
+        else:
+            new_fids.append(fid)
+
+    curr_keys = {finding_logical_key(f) for f in current_findings}
+    resolved_fids = [
+        f["fid"]
+        for f in prev_findings
+        if f.get("fid") and f["fid"] not in curr_fids and finding_logical_key(f) not in curr_keys
+    ]
 
     return {
         "previous_assessment_id": str(previous_assessment.get("_id")),
         "previous_version": previous_assessment.get("target_version"),
-        "new": sorted(curr_fids - prev_fids),
-        "resolved": sorted(prev_fids - curr_fids),
-        "persisting": sorted(curr_fids & prev_fids),
+        "new": sorted(set(new_fids)),
+        "resolved": sorted(set(resolved_fids)),
+        "persisting": sorted(set(persisting_fids)),
     }
 
 

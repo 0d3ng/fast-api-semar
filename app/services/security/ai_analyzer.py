@@ -376,6 +376,32 @@ async def analyze_findings_with_ai(
             )
             resp = await client.chat_json(SYSTEM_PROMPT, prompt_to_send, schema)
             output, val_meta = validate_and_ground_output(resp["content"], valid_fids)
+
+            # If policy passed, previous build was human-approved, and zero new reachable non-low findings exist,
+            # prevent 8B model from falsely escalating already-approved baseline items.
+            prev_approved = bool((diff_vs_previous or {}).get("previous_human_approved")) if isinstance(diff_vs_previous, dict) else False
+            has_new_reachable = any(
+                (f.get("reachable", True) is not False)
+                and not f.get("previously_approved", False)
+                and str(f.get("severity") or "medium").lower() not in ("low", "info")
+                for f in findings
+            )
+            has_exploitable_triage = any(
+                getattr(t, "relevance", "") == "exploitable"
+                for t in (output.triage or [])
+            )
+            if (
+                policy_result.get("decision") == "PASS"
+                and prev_approved
+                and not has_new_reachable
+                and not has_exploitable_triage
+                and output.recommended_decision != "PASS"
+            ):
+                logger.info(
+                    "AI analyzer baseline guard: keeping recommended_decision=PASS (0 new reachable findings since human-approved baseline)"
+                )
+                output.recommended_decision = "PASS"
+
             result_dict = {
                 "status": "completed",
                 "model": resp["model"],

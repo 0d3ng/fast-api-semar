@@ -22,7 +22,7 @@ from app.services.security.ai_analyzer import analyze_findings_with_ai
 from app.services.security.decision import merge_policy_and_ai, workflow_state_for_decision
 from app.services.security.enricher import apply_reachability, enrich_findings
 from app.services.security.github_issue_client import create_fix_issue
-from app.services.security.normalizer import compute_diff, normalize_evidence_bundle
+from app.services.security.normalizer import compute_diff, finding_logical_key, normalize_evidence_bundle
 from app.services.security.policy_engine import evaluate_policy
 from app.utils.config import (
     FIRMWARE_FOLDER,
@@ -76,6 +76,7 @@ def _extract_review_baseline(
             for f in (d.get("findings") or []):
                 if f.get("fid"):
                     approved_fids.add(f["fid"])
+                    approved_fids.add(finding_logical_key(f))
 
     if own_doc:
         for rev in (own_doc.get("review_history") or []):
@@ -96,12 +97,13 @@ def _apply_review_baseline(
     inherited_fp_count = 0
     for f in findings:
         fid = f.get("fid")
-        if fid and fid in fp_fids:
+        lkey = finding_logical_key(f)
+        if (fid and fid in fp_fids) or (lkey in fp_fids):
             f["reachable"] = False
             f["reachable_hint"] = "Marked as False Positive (Ignore FP) in previous approved human review"
             f["inherited_false_positive"] = True
             inherited_fp_count += 1
-        f["previously_approved"] = bool(fid and fid in approved_fids)
+        f["previously_approved"] = bool((fid and fid in approved_fids) or (lkey in approved_fids))
     return inherited_fp_count
 
 

@@ -5,7 +5,7 @@ import json
 import os
 import traceback
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 import pytz
 from bson import ObjectId
@@ -51,6 +51,58 @@ def _save_evidence_file(target_version: str, filename: str, raw: bytes) -> str:
     with open(path, "wb") as f:
         f.write(raw)
     return path
+
+
+def _extract_review_baseline(
+    baseline_docs: List[Optional[Dict[str, Any]]],
+    own_doc: Optional[Dict[str, Any]] = None,
+) -> Tuple[set, set]:
+    """Collect approved false-positive FIDs and previously approved baseline FIDs."""
+    fp_fids: set = set()
+    approved_fids: set = set()
+
+    for d in baseline_docs:
+        if not d:
+            continue
+        is_approved_doc = d.get("workflow_state") == "approved"
+        has_approve_action = False
+        for rev in (d.get("review_history") or []):
+            if rev.get("action") == "approve":
+                has_approve_action = True
+                for fid in (rev.get("false_positive_fids") or []):
+                    if fid:
+                        fp_fids.add(fid)
+        if is_approved_doc or has_approve_action:
+            for f in (d.get("findings") or []):
+                if f.get("fid"):
+                    approved_fids.add(f["fid"])
+
+    if own_doc:
+        for rev in (own_doc.get("review_history") or []):
+            if rev.get("action") == "approve":
+                for fid in (rev.get("false_positive_fids") or []):
+                    if fid:
+                        fp_fids.add(fid)
+
+    return fp_fids, approved_fids
+
+
+def _apply_review_baseline(
+    findings: List[Dict[str, Any]],
+    fp_fids: set,
+    approved_fids: set,
+) -> int:
+    """Annotate findings with inherited False Positives and previously_approved flags."""
+    inherited_fp_count = 0
+    for f in findings:
+        fid = f.get("fid")
+        if fid and fid in fp_fids:
+            f["reachable"] = False
+            f["reachable_hint"] = "Marked as False Positive (Ignore FP) in previous approved human review"
+            f["inherited_false_positive"] = True
+            inherited_fp_count += 1
+        f["previously_approved"] = bool(fid and fid in approved_fids)
+    return inherited_fp_count
 
 
 class SecurityGate:
@@ -194,9 +246,8 @@ class SecurityAssessmentService:
                 sdkconfig_flags=metadata.sdkconfig_flags,
                 platform_type=metadata.platform_type,
             )
-            policy_result = evaluate_policy(findings, summary, profile=SECURITY_POLICY_PROFILE)
 
-            # Find previous assessment for differential tracking & superseding fix_requested
+            # Find previous & latest approved assessment for differential tracking & baseline memory
             prev_doc = await db.ota_security_assessments.find_one(
                 {
                     "platform_type": metadata.platform_type,
@@ -204,7 +255,23 @@ class SecurityAssessmentService:
                 },
                 sort=[("inserted_at", -1)],
             )
+            baseline_doc = prev_doc if (prev_doc and prev_doc.get("workflow_state") == "approved") else await db.ota_security_assessments.find_one(
+                {
+                    "platform_type": metadata.platform_type,
+                    "workflow_state": "approved",
+                    "deleted_at": None,
+                },
+                sort=[("updated_at", -1)],
+            )
+
+            fp_fids, approved_fids = _extract_review_baseline([prev_doc, baseline_doc])
+            inherited_fp_count = _apply_review_baseline(findings, fp_fids, approved_fids)
+
+            policy_result = evaluate_policy(findings, summary, profile=SECURITY_POLICY_PROFILE)
             diff = compute_diff(findings, prev_doc)
+            if diff is not None:
+                diff["previous_human_approved"] = bool(prev_doc and prev_doc.get("workflow_state") == "approved")
+                diff["inherited_fp_count"] = inherited_fp_count
 
             # Find matching releases already uploaded
             release_ids: List[str] = []
@@ -302,9 +369,30 @@ class SecurityAssessmentService:
                 sdkconfig_flags=source_info.get("sdkconfig_flags"),
                 platform_type=doc.get("platform_type") or "esp32",
             )
+            platform = doc.get("platform_type") or "esp32"
+            baseline_doc = await db.ota_security_assessments.find_one(
+                {
+                    "_id": {"$ne": doc["_id"]},
+                    "platform_type": platform,
+                    "workflow_state": "approved",
+                    "deleted_at": None,
+                },
+                sort=[("updated_at", -1)],
+            )
+            fp_fids, approved_fids = _extract_review_baseline([baseline_doc], own_doc=doc)
+            inherited_fp_count = _apply_review_baseline(findings, fp_fids, approved_fids)
+
             policy_result = doc.get("policy_result") or {}
             target_profile = profile_override or policy_result.get("profile") or SECURITY_POLICY_PROFILE
             policy_result = evaluate_policy(findings, summary, profile=target_profile)
+
+            diff_vs_prev = doc.get("diff_vs_previous")
+            if isinstance(diff_vs_prev, dict):
+                diff_vs_prev = {
+                    **diff_vs_prev,
+                    "previous_human_approved": bool(diff_vs_prev.get("previous_human_approved") or baseline_doc),
+                    "inherited_fp_count": inherited_fp_count,
+                }
 
             logger.info(
                 "Running AI stage: assessment_id=%s target=%s profile=%s run_ai=%s model_override=%s findings=%d",
@@ -328,7 +416,7 @@ class SecurityAssessmentService:
                     findings=findings,
                     summary=summary,
                     policy_result=policy_result,
-                    diff_vs_previous=doc.get("diff_vs_previous"),
+                    diff_vs_previous=diff_vs_prev,
                     model_override=model_override,
                 )
 

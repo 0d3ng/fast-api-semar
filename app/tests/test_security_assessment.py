@@ -8,7 +8,12 @@ from starlette.testclient import TestClient
 
 from app.main import app
 from app.schemas.ota_security_assessment_schema import AssessmentReviewRequest
-from app.services.ota_security_assessment_service import SecurityAssessmentService, SecurityGate
+from app.services.ota_security_assessment_service import (
+    SecurityAssessmentService,
+    SecurityGate,
+    _apply_review_baseline,
+    _extract_review_baseline,
+)
 from app.services.security.ai_analyzer import (
     _prioritize_findings_for_prompt,
     analyze_findings_with_ai,
@@ -178,6 +183,39 @@ class TestSecurityNormalizerAndPolicy(unittest.TestCase):
         self.assertEqual(selected[0]["fid"], "F-high-1")
         self.assertEqual(selected[1]["fid"], "F-crit-unreach")
         self.assertEqual(omitted_low, 37)
+
+    def test_prompt_prioritizes_new_findings_over_previously_approved(self):
+        findings = [
+            {"fid": "F-old-high", "category": "dependency_cve", "severity": "high", "reachable": True, "previously_approved": True},
+            {"fid": "F-new-high", "category": "dependency_cve", "severity": "high", "reachable": True, "previously_approved": False},
+        ]
+        selected, _ = _prioritize_findings_for_prompt(findings)
+        self.assertEqual(selected[0]["fid"], "F-new-high")
+
+    def test_extract_and_apply_review_baseline_inherits_fp_and_approvals(self):
+        approved_doc = {
+            "workflow_state": "approved",
+            "findings": [{"fid": "F-old-1"}, {"fid": "F-fp-1"}],
+            "review_history": [
+                {"action": "approve", "false_positive_fids": ["F-fp-1"]},
+            ],
+        }
+        fp_fids, approved_fids = _extract_review_baseline([approved_doc])
+        self.assertEqual(fp_fids, {"F-fp-1"})
+        self.assertEqual(approved_fids, {"F-old-1", "F-fp-1"})
+
+        new_findings = [
+            {"fid": "F-old-1", "reachable": True, "severity": "medium"},
+            {"fid": "F-fp-1", "reachable": True, "severity": "high"},
+            {"fid": "F-brand-new", "reachable": True, "severity": "medium"},
+        ]
+        inherited_count = _apply_review_baseline(new_findings, fp_fids, approved_fids)
+        self.assertEqual(inherited_count, 1)
+        self.assertTrue(new_findings[0]["previously_approved"])
+        self.assertTrue(new_findings[0]["reachable"])
+        self.assertFalse(new_findings[1]["reachable"])
+        self.assertTrue(new_findings[1]["inherited_false_positive"])
+        self.assertFalse(new_findings[2]["previously_approved"])
 
 
 class TestMonotonicAndAiGrounding(unittest.IsolatedAsyncioTestCase):

@@ -1,4 +1,4 @@
-"""Plot publication-grade Matplotlib charts (PNG 300 DPI + PDF) for Evaluation 1.
+"""Plot publication-grade Matplotlib charts (PNG 300 DPI) for Evaluation 1.
 
 Edit labels, titles, colors, and typography in `CHART_CONFIG` below, then run:
     python -m app.scripts.plot_filtering_charts
@@ -189,7 +189,6 @@ def render_charts(data: Dict[str, Any], out_dir: str) -> None:
 
     plt.tight_layout()
     fig.savefig(os.path.join(out_dir, "fig1_filtering_funnel.png"), dpi=dpi)
-    fig.savefig(os.path.join(out_dir, "fig1_filtering_funnel.pdf"))
     plt.close(fig)
 
     # ==========================================================================
@@ -259,7 +258,6 @@ def render_charts(data: Dict[str, Any], out_dir: str) -> None:
 
     plt.tight_layout()
     fig.savefig(os.path.join(out_dir, "fig2_sbom_and_blockers.png"), dpi=dpi)
-    fig.savefig(os.path.join(out_dir, "fig2_sbom_and_blockers.pdf"))
     plt.close(fig)
 
     # ==========================================================================
@@ -305,7 +303,6 @@ def render_charts(data: Dict[str, Any], out_dir: str) -> None:
 
     plt.tight_layout()
     fig.savefig(os.path.join(out_dir, "fig3_prompt_compression_and_fp.png"), dpi=dpi)
-    fig.savefig(os.path.join(out_dir, "fig3_prompt_compression_and_fp.pdf"))
     plt.close(fig)
 
     print(f"Generated charts in {os.path.abspath(out_dir)}:")

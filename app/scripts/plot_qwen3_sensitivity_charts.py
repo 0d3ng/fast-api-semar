@@ -111,7 +111,7 @@ def render_charts(data: Dict[str, Any], out_dir: str) -> None:
     ax1.set_xlabel(c4["xlabel_a"])
     ax1.set_ylabel(c4["ylabel_a"])
     ax1.set_ylim(0, 122)
-    ax1.set_title(c4["title_a"])
+    # ax1.set_title(c4["title_a"])
     ax1.grid(axis="y", linestyle="--", alpha=0.4, zorder=0)
     ax1.legend(loc="lower left", frameon=True)
 
@@ -131,7 +131,7 @@ def render_charts(data: Dict[str, Any], out_dir: str) -> None:
     ax2.set_xlabel(c4["xlabel_b"])
     ax2.set_ylabel(c4["ylabel_b_left"], color="#1d4ed8")
     ax2.set_ylim(0, max([m + s for m, s in zip(lat_m, lat_s)] + [10]) * 1.35)
-    ax2.set_title(c4["title_b"])
+    # ax2.set_title(c4["title_b"])
     ax2.grid(axis="y", linestyle="--", alpha=0.4, zorder=0)
 
     for bar, m, s in zip(bars_lat, lat_m, lat_s):

@@ -107,7 +107,7 @@ def render_charts(data: Dict[str, Any], out_dir: str) -> None:
     ax.set_xticklabels(m_labels, fontweight="bold")
     ax.set_ylabel(c6["ylabel"])
     ax.set_ylim(0, 120)
-    ax.set_title(c6["title"])
+    # ax.set_title(c6["title"])
     ax.grid(axis="y", linestyle="--", alpha=0.4, zorder=0)
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.0), ncol=3, frameon=True)
 
@@ -181,7 +181,7 @@ def render_charts(data: Dict[str, Any], out_dir: str) -> None:
                 color=text_colors[code],
             )
 
-    ax.set_title(c7["title"], pad=24)
+    # ax.set_title(c7["title"], pad=24)
     legend_handles = [
         Patch(facecolor="#e2e8f0", edgecolor="#64748b", label="Ground Truth Reference"),
         Patch(facecolor="#bbf7d0", edgecolor="#14532d", label="Exact Match (✓)"),
